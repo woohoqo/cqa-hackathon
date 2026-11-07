@@ -7,6 +7,7 @@ from ..contracts import AIProviderError, ChecklistVersion, Conversation, Evaluat
 from . import provider
 from .audit import check_audit_sink, record_attempt
 from .config import AISettings
+from .pacing import request_gate
 from .prompt import PROMPT_VERSION, SYSTEM_PROMPT, build_input, build_schema
 from .validation import InvalidResponse, validate_response
 
@@ -48,6 +49,15 @@ async def evaluate_dialogue(conversation: Conversation, checklist: ChecklistVers
                 reply = None
                 retry_after = None
                 try:
+                    await request_gate.acquire(
+                        settings.model, settings.min_request_interval_seconds,
+                        max_cooldown_wait=max(0.0, settings.evaluation_timeout_seconds - settings.timeout_seconds),
+                    )
+                except AIProviderError as exc:
+                    # No HTTP request occurred: do not record invented usage/attempts.
+                    raise AIProviderError(exc.code, exc.message, retryable=exc.retryable,
+                                          raw_response=last_raw) from None
+                try:
                     reply = await provider.generate_once(settings, system_instruction + feedback,
                                                          user_content, schema)
                 except asyncio.CancelledError:
@@ -59,14 +69,23 @@ async def evaluate_dialogue(conversation: Conversation, checklist: ChecklistVers
                     raise
                 except AIProviderError as exc:
                     audit(attempt, "provider_error", reply=getattr(exc, "reply", None), error_code=exc.code)
+                    if exc.code in {"provider_rate_limit", "provider_daily_quota_exhausted"}:
+                        retry_after = max(settings.rate_limit_cooldown_seconds, getattr(exc, "retry_after", None) or 0.0)
+                        request_gate.defer(settings.model, retry_after, exc.code)
                     if not exc.retryable:
                         raise AIProviderError(exc.code, exc.message, retryable=False,
                                               raw_response=exc.raw_response if exc.raw_response is not None else last_raw) from None
                     last_error = exc
-                    retry_after = getattr(exc, "retry_after", None)
+                    if retry_after is None:
+                        retry_after = getattr(exc, "retry_after", None)
                 else:
                     if reply.raw_text is not None:
                         last_raw = reply.raw_text
+                    if reply.finish_reason == "MAX_TOKENS":
+                        audit(attempt, "output_limit", reply, "ai_output_limit")
+                        # Repeating the same capped request wastes a scarce free-tier call.
+                        raise AIProviderError("ai_output_limit", "Gemini output limit reached. Increase GEMINI_MAX_OUTPUT_TOKENS.",
+                                              raw_response=last_raw)
                     if reply.blocked:
                         audit(attempt, "blocked", reply, "ai_blocked")
                         raise AIProviderError("ai_blocked", "Провайдер не смог оценить этот диалог.",

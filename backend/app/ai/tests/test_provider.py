@@ -198,6 +198,148 @@ def test_retry_after_numeric_date_and_invalid():
     assert 28 <= provider._retry_after(format_datetime(future)) <= 30
 
 
+def retry_detail(delay):
+    return {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": delay}
+
+
+def quota_detail(quota_id):
+    return {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [{"quotaId": quota_id}]}
+
+
+def quota_body(*details):
+    return {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "details": list(details)}}
+
+
+@pytest.mark.parametrize("header, delays, expected", [
+    (None, ["12.5s"], 12.5), ("30", ["12s"], 30), ("12", ["30s"], 30),
+    (None, ["3s", "bad", "45.000000001s"], 45.000000001),
+    (None, ["0s"], 0), (None, ["86000s"], 86000),
+])
+def test_429_combines_typed_retry_delays_without_shortening(monkeypatch, settings, header, delays, expected):
+    headers = {"Retry-After": header} if header is not None else {}
+    mock_client(monkeypatch, lambda request: httpx.Response(
+        429, headers=headers, json=quota_body(*(retry_detail(delay) for delay in delays)),
+    ))
+    with pytest.raises(TransientProviderError) as error:
+        run(settings)
+    assert error.value.code == "provider_rate_limit" and error.value.retry_after == expected
+
+
+@pytest.mark.parametrize("invalid", [None, 10, True, {"seconds": 10}, "-1s", "NaNs", "infs", "1e3s", "1", "1ms", "1.1234567890s", "315576000001s", "9" * 1000 + "s"])
+def test_malformed_retry_duration_uses_header(monkeypatch, settings, invalid):
+    mock_client(monkeypatch, lambda request: httpx.Response(
+        429, headers={"Retry-After": "7"}, json=quota_body(retry_detail(invalid)),
+    ))
+    with pytest.raises(TransientProviderError) as error:
+        run(settings)
+    assert error.value.retry_after == 7
+
+
+@pytest.mark.parametrize("quota_id", [
+    "GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+    "GenerateContentInputTokensPerModelPerDay-FreeTier",
+    "generate_requests_per_day_per_model", "generate-requests-per-day",
+])
+def test_daily_quota_overrides_short_retry_and_minute_quota(monkeypatch, settings, quota_id):
+    calls = []
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(429, json=quota_body(
+            quota_detail("GenerateRequestsPerMinutePerProjectPerModel-FreeTier"),
+            quota_detail(quota_id), retry_detail("1s"),
+        ))
+    mock_client(monkeypatch, handler)
+    with pytest.raises(AIProviderError) as error:
+        run(settings)
+    assert error.value.code == "provider_daily_quota_exhausted"
+    assert not error.value.retryable and error.value.retry_after == 1
+    assert len(calls) == 1
+
+
+def test_daily_quota_does_not_invent_reset_time(monkeypatch, settings):
+    mock_client(monkeypatch, lambda request: httpx.Response(429, json=quota_body(
+        quota_detail("GenerateRequestsPerDayPerProjectPerModel-FreeTier"),
+    )))
+    with pytest.raises(AIProviderError) as error:
+        run(settings)
+    assert error.value.code == "provider_daily_quota_exhausted" and error.value.retry_after is None
+
+
+@pytest.mark.parametrize("quota_id", [
+    "GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "UnknownQuota",
+    "SuperDayLimit", "RequestsPerDaydream", "PerDay\nunsafe", "X" * 201 + "PerDay",
+])
+def test_non_daily_identifiers_remain_transient(monkeypatch, settings, quota_id):
+    mock_client(monkeypatch, lambda request: httpx.Response(429, json=quota_body(quota_detail(quota_id))))
+    with pytest.raises(TransientProviderError) as error:
+        run(settings)
+    assert error.value.code == "provider_rate_limit" and error.value.retry_after is None
+
+
+def test_untyped_hints_and_raw_error_text_never_control_retry_or_leak(monkeypatch, settings, caplog):
+    body = quota_body(
+        {"@type": "RetryInfo", "retryDelay": "999s"},
+        {"@type": "https://example.invalid/google.rpc.QuotaFailure", "violations": [{"quotaId": "RequestsPerDay"}]},
+        {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [{
+            "description": "Daily Limit exceeded; retry in 999s", "subject": "private-project-secret",
+            "quotaMetric": "generate_content_free_tier_requests", "quotaValue": "250",
+        }]},
+    )
+    body["error"]["message"] = "synthetic-secret private transcript https://example.invalid/signed-secret"
+    mock_client(monkeypatch, lambda request: httpx.Response(429, json=body))
+    with pytest.raises(TransientProviderError) as error:
+        run(settings)
+    assert error.value.retry_after is None
+    assert error.value.raw_response is None
+    for secret in ("synthetic-secret", "private transcript", "signed-secret", "private-project-secret"):
+        assert secret not in str(vars(error.value)) and secret not in caplog.text
+
+
+@pytest.mark.parametrize("body", [
+    b"<html>rate limited</html>", b"[]", b"{}", b'{"error":null}',
+    b'{"error":{"details":{}}}', b'{"error":{"details":[null,42,{}]}}',
+    b'{"error":{"details":[{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":null}]}}',
+    b'{"error":{"details":[],"value":NaN}}',
+])
+def test_bad_429_body_retains_status_and_header(monkeypatch, settings, body):
+    mock_client(monkeypatch, lambda request: httpx.Response(429, content=body, headers={"Retry-After": "3"}))
+    with pytest.raises(TransientProviderError) as error:
+        run(settings)
+    assert error.value.code == "provider_rate_limit" and error.value.retry_after == 3
+
+
+def test_oversized_429_body_is_not_parsed(monkeypatch, settings):
+    monkeypatch.setattr(provider, "MAX_ERROR_BYTES", 16)
+    body = quota_body(quota_detail("GenerateRequestsPerDayPerProjectPerModel-FreeTier"))
+    mock_client(monkeypatch, lambda request: httpx.Response(429, json=body, headers={"Retry-After": "4"}))
+    with pytest.raises(TransientProviderError) as error:
+        run(settings)
+    assert error.value.code == "provider_rate_limit" and error.value.retry_after == 4
+
+
+@pytest.mark.parametrize("exception", [httpx.ReadTimeout("sensitive"), httpx.RemoteProtocolError("sensitive"), httpx.DecodingError("sensitive")])
+def test_429_body_read_error_retains_rate_limit(monkeypatch, settings, exception):
+    class BrokenBody(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            yield b'{"error":'
+            raise exception
+    mock_client(monkeypatch, lambda request: httpx.Response(429, stream=BrokenBody(), headers={"Retry-After": "5"}))
+    with pytest.raises(TransientProviderError) as error:
+        run(settings)
+    assert error.value.code == "provider_rate_limit" and error.value.retry_after == 5
+    assert "sensitive" not in str(error.value)
+
+
+def test_429_body_read_cancellation_propagates(monkeypatch, settings):
+    class CancelledBody(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            yield b'{"error":'
+            raise asyncio.CancelledError()
+    mock_client(monkeypatch, lambda request: httpx.Response(429, stream=CancelledBody()))
+    with pytest.raises(asyncio.CancelledError):
+        run(settings)
+
+
 @pytest.fixture
 def clean_environment(monkeypatch, tmp_path):
     for key in list(config.os.environ):

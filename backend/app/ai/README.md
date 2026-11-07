@@ -23,16 +23,18 @@ the provider uses the project's existing `httpx`, `pydantic` and `python-dotenv`
 | Variable | Default / purpose |
 | --- | --- |
 | `GEMINI_API_KEY` | Required; sent only in `x-goog-api-key` to Google's fixed HTTPS API |
-| `GEMINI_MODEL` | Required supported model ID; candidate for live validation: `gemini-3.8-flash` |
+| `GEMINI_MODEL` | Required supported model ID; team choice: `gemini-3.5-flash-lite` |
 | `AI_PROVIDER` | `gemini`; other values fail explicitly |
 | `GEMINI_TIMEOUT_SECONDS` | `30`, timeout per HTTP operation |
 | `AI_EVALUATION_TIMEOUT_SECONDS` | `100`, total evaluation deadline including retries |
 | `AI_MAX_ATTEMPTS` | `3`, initial request plus at most two retries; configurable 1–5 |
 | `AI_RETRY_BASE_SECONDS` | `1`, exponential backoff with jitter |
 | `AI_RETRY_MAX_SECONDS` | `10`; longer Retry-After returns a safe retryable error immediately |
+| `AI_MIN_REQUEST_INTERVAL_SECONDS` | `0`; free-tier profile uses `15` between request starts, including retries |
+| `AI_RATE_LIMIT_COOLDOWN_SECONDS` | `60`; minimum shared cooldown on HTTP 429, extended by Google's delay |
 | `GEMINI_MAX_OUTPUT_TOKENS` | `8192`; may need adjustment for long checklists/thinking |
 | `GEMINI_TEMPERATURE` | `1.0`, Google's recommended default for Gemini 3 |
-| `GEMINI_THINKING_LEVEL` | Unset; model-specific. Use `low`, `medium` or `high` for 3.8 Flash |
+| `GEMINI_THINKING_LEVEL` | Unset; free-tier profile uses `minimal`, supported by 3.5 Flash-Lite |
 | `GEMINI_THINKING_BUDGET` | Unset; alternative for budget-based models, not with thinking level |
 | `AI_USAGE_LOG_PATH` | `data/ai_usage.jsonl`, relative to process working directory |
 | `AI_INPUT_USD_PER_MILLION` | Unset; optional configured uncached input price |
@@ -45,6 +47,41 @@ The backend separately limits concurrency through `AI_CONCURRENCY`. `GOOGLE_API_
 is intentionally not an implicit fallback: use the explicit `GEMINI_API_KEY` setting.
 Invalid credentials/configuration are not retried. Redirects and environment proxy
 inheritance are disabled; outbound access to `generativelanguage.googleapis.com` is required.
+
+### Free-tier profile
+
+Copy `backend/app/ai/free-tier.env.example` to the root `.env`, then set `GEMINI_API_KEY`.
+It selects `gemini-3.5-flash-lite`, minimal thinking, backend concurrency 1, at most two
+attempts and 15 seconds between request starts. This is conservative application pacing,
+NOT a claim that Google's quota is 4 RPM. Check the project's active RPM/input TPM/RPD
+in https://aistudio.google.com/usage?timeRange=last-28-days&tab=rate-limit.
+No fixed daily quota is assumed. Limits are per project, shared across its API keys/apps;
+RPD resets at midnight Pacific according to Google's documentation.
+
+Run a single backend worker. Pacing/cooldown is in memory, shared per model in this
+process only, and resets on restart. Multiple workers/hosts need an integrator-owned
+shared limiter. Waiting counts against the total evaluation timeout and is cancellable.
+There is no extra `countTokens`, independent judging pass, search, cache or paid fallback.
+The complete dialogue/checklist still goes to the model; input TPM is enforced by Google,
+not estimated from characters. Large inputs may exhaust it despite low request frequency.
+
+On 429, the evaluator reads bounded structured `google.rpc.RetryInfo` and uses the longer
+of that delay, `Retry-After` and the configured cooldown. Later evaluations wait a short
+cooldown when it leaves an HTTP timeout window inside the total deadline; long/daily
+cooldowns fail locally without an API call or an invented usage entry. A known `PerDay` QuotaFailure
+stops retries for that evaluation; this classification is an identifier convention, not
+a guaranteed list of Google's quota names. Without a server delay only the configured
+cooldown applies; the app does not pretend to know a project's remaining daily allowance.
+The current backend marks a rejected evaluation failed, including long/daily cooldowns.
+Integrator follow-up: persist a deferred job/next-attempt time for automatic queue recovery;
+until then, retry those failed evaluations after quota recovery.
+Truncated `MAX_TOKENS` output fails once with `ai_output_limit`; repeating the same cap
+would waste quota. Increase the output cap for longer checklists instead of dropping criteria.
+
+The free profile uses zero unit prices (the confirmed Free Tier), not a measured $0 run.
+These variables cannot activate Free Tier or prevent charges on a billing-enabled project.
+Unknown usage remains null. Minimal thinking and pacing have not yet been compared on
+human labels; the profile is an operational starting point, not a demonstrated quality gain.
 
 ## Evaluation and evidence
 
@@ -117,12 +154,13 @@ All AI tests use clearly labelled synthetic data and mocked HTTP responses. They
 transport, schema, validation, accounting and integration behavior, not scoring accuracy.
 
 Completed checks in this implementation:
-- 115 AI tests passed using a test-only event loop that runs Python's actual task/timer/
+- 173 AI tests passed using a test-only event loop that runs Python's actual task/timer/
   cancellation scheduler but forbids every I/O registration. This avoids the host's blocked
   Windows `socketpair()` setup; it is NOT native event-loop or real-network validation.
 - 34 existing backend scoring/importer/contract-export tests passed normally.
-- Python compilation and Git whitespace checks passed. Available installed dependencies
-  were used; a clean installation from `requirements.lock` was not verified here.
+- Linux GitHub CI passed the existing 54 backend tests and installation from
+  `requirements.lock` on 8624f57 (run 42369317120). Its testpaths exclude AI tests.
+- Python compilation and Git whitespace checks passed.
 
 Reproduce the offline mocked run (do not use this runner for production or real I/O):
 
@@ -130,8 +168,8 @@ Reproduce the offline mocked run (do not use this runner for production or real 
 python -m backend.app.ai.tests.run_offline_tests
 ```
 
-The full default-loop suite and backend HTTP integration still need Linux CI. Normal Windows
-async tests could not start because even an empty event loop hung inside `socketpair/accept`.
+AI tests on the native default loop still need Linux CI. Normal Windows async tests could
+not start because even an empty event loop hung inside `socketpair/accept`.
 
 No real Gemini API request has been performed during this implementation. The environment
 has no Gemini key and terminal network access is unavailable. Availability of the configured
@@ -146,11 +184,14 @@ Only compare a second model call after measuring improvements against human anno
 
 ## Official documentation checked 2026-11-07
 
-- Model: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash
+- Model: https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite
 - Structured output: https://ai.google.dev/gemini-api/docs/structured-output
 - REST, usage and finish reasons: https://ai.google.dev/api/generate-content
 - Errors: https://ai.google.dev/gemini-api/docs/api-errors
 - Sampling/thinking: https://ai.google.dev/gemini-api/docs/gemini-3
+- Thinking levels: https://ai.google.dev/gemini-api/docs/thinking
+- Project rate limits: https://ai.google.dev/gemini-api/docs/rate-limits
+- Structured error details: https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
 - Pricing/lifecycle: https://ai.google.dev/gemini-api/docs/pricing and https://ai.google.dev/gemini-api/docs/deprecations
 
 Transport uses documented `generateContent` compatibility fields `responseMimeType` and

@@ -39,6 +39,8 @@ class AISettings:
     evaluation_timeout_seconds: float = 100.0
     retry_base_seconds: float = 1.0
     retry_max_seconds: float = 10.0
+    min_request_interval_seconds: float = 0.0
+    rate_limit_cooldown_seconds: float = 60.0
     max_output_tokens: int = 8192
     temperature: float = 1.0
     thinking_level: str | None = None
@@ -63,6 +65,8 @@ class AISettings:
             ("AI_EVALUATION_TIMEOUT_SECONDS", self.evaluation_timeout_seconds, 0.01, 600),
             ("AI_RETRY_BASE_SECONDS", self.retry_base_seconds, 0, 60),
             ("AI_RETRY_MAX_SECONDS", self.retry_max_seconds, 0, 60),
+            ("AI_MIN_REQUEST_INTERVAL_SECONDS", self.min_request_interval_seconds, 0, 300),
+            ("AI_RATE_LIMIT_COOLDOWN_SECONDS", self.rate_limit_cooldown_seconds, 1, 86400),
             ("GEMINI_TEMPERATURE", self.temperature, 0, 2),
         )
         for name, value, minimum, maximum in bounds:
@@ -109,6 +113,8 @@ class AISettings:
             evaluation_timeout_seconds=_number("AI_EVALUATION_TIMEOUT_SECONDS", 100.0),
             retry_base_seconds=_number("AI_RETRY_BASE_SECONDS", 1.0),
             retry_max_seconds=_number("AI_RETRY_MAX_SECONDS", 10.0),
+            min_request_interval_seconds=_number("AI_MIN_REQUEST_INTERVAL_SECONDS", 0.0),
+            rate_limit_cooldown_seconds=_number("AI_RATE_LIMIT_COOLDOWN_SECONDS", 60.0),
             max_output_tokens=_number("GEMINI_MAX_OUTPUT_TOKENS", 8192, integer=True),
             temperature=_number("GEMINI_TEMPERATURE", 1.0),
             thinking_level=os.getenv("GEMINI_THINKING_LEVEL", "").strip().lower() or None,

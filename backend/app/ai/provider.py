@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -19,8 +20,14 @@ from ..contracts import AIProviderError
 from .config import AISettings
 
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+MAX_ERROR_BYTES = 64 * 1024
 _ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/"
 _BLOCK_REASONS = {"SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY"}
+_RETRY_INFO = "type.googleapis.com/google.rpc.RetryInfo"
+_QUOTA_FAILURE = "type.googleapis.com/google.rpc.QuotaFailure"
+_DURATION = re.compile(r"[0-9]{1,12}(?:\.[0-9]{1,9})?s\Z")
+_QUOTA_ID = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,199}\Z")
+_DAILY_QUOTA = re.compile(r"PerDay(?:[A-Z_-]|$)|(?:^|[_-])per[_-]day(?:[_-]|$)")
 
 
 @dataclass(frozen=True)
@@ -53,6 +60,76 @@ def _retry_after(value: str | None) -> float | None:
         except (ValueError, TypeError, OverflowError):
             return None
     return max(0.0, seconds) if math.isfinite(seconds) else None
+
+
+def _quota_hints(body: bytes) -> tuple[float | None, bool]:
+    """Extract only typed retry/quota hints; never retain provider error text.
+
+    google.rpc.RetryInfo uses protobuf JSON Duration (seconds, up to 9 decimal
+    places). QuotaFailure defines quotaId, but its service-specific naming is
+    not a universal API guarantee: only explicit daily identifiers are matched.
+    Unknown quota IDs retain the ordinary transient 429 behavior.
+    """
+    try:
+        envelope = json.loads(body, parse_constant=_reject_constant)
+    except (ValueError, UnicodeError, RecursionError):
+        return None, False
+    error = envelope.get("error") if isinstance(envelope, dict) else None
+    details = error.get("details") if isinstance(error, dict) else None
+    if not isinstance(details, list):
+        return None, False
+    delays = []
+    daily = False
+    for detail in details:
+        if not isinstance(detail, dict):
+            continue
+        if detail.get("@type") == _RETRY_INFO:
+            raw = detail.get("retryDelay")
+            if isinstance(raw, str) and _DURATION.fullmatch(raw):
+                delay = float(raw[:-1])
+                if 0 <= delay <= 315_576_000_000:
+                    delays.append(delay)
+        elif detail.get("@type") == _QUOTA_FAILURE:
+            violations = detail.get("violations")
+            if not isinstance(violations, list):
+                continue
+            for violation in violations:
+                quota_id = violation.get("quotaId") if isinstance(violation, dict) else None
+                if isinstance(quota_id, str) and _QUOTA_ID.fullmatch(quota_id) and _DAILY_QUOTA.search(quota_id):
+                    daily = True
+    return max(delays, default=None), daily
+
+
+async def _rate_limit_error(response: httpx.Response) -> AIProviderError:
+    header_delay = _retry_after(response.headers.get("Retry-After"))
+    body = bytearray()
+    body_delay, daily = None, False
+    try:
+        async for chunk in response.aiter_bytes():
+            if len(body) + len(chunk) > MAX_ERROR_BYTES:
+                break  # Never classify a partial or oversized error body.
+            body.extend(chunk)
+        else:
+            body_delay, daily = _quota_hints(bytes(body))
+    except httpx.HTTPError:
+        # HTTP status and header were already received. A broken error body
+        # must not erase the rate limit; task cancellation still propagates.
+        pass
+    delays = [delay for delay in (header_delay, body_delay) if delay is not None]
+    retry_after = max(delays, default=None)
+    if daily:
+        error = AIProviderError(
+            "provider_daily_quota_exhausted",
+            "Gemini project daily quota is exhausted. Check the project quota in AI Studio and retry after it resets.",
+            retryable=False,
+        )
+        # A reported delay is a lower bound, not a promise of a quota reset.
+        # Do not invent a reset time when Google omits it.
+        error.retry_after = retry_after
+        return error
+    return TransientProviderError(
+        "provider_rate_limit", "Gemini is temporarily rate limited.", retry_after=retry_after,
+    )
 
 
 def _envelope_error() -> AIProviderError:
@@ -165,9 +242,11 @@ async def generate_once(settings: AISettings, system_instruction: str, user_cont
                 json=payload,
             ) as response:
                 status = response.status_code
-                if status in {408, 429} or 500 <= status <= 599:
+                if status == 429:
+                    raise await _rate_limit_error(response)
+                if status == 408 or 500 <= status <= 599:
                     raise TransientProviderError(
-                        "provider_rate_limit" if status == 429 else "provider_unavailable",
+                        "provider_unavailable",
                         "Gemini is temporarily unavailable or rate limited.",
                         retry_after=_retry_after(response.headers.get("Retry-After")),
                     )

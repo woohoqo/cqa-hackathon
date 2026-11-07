@@ -9,6 +9,7 @@ from backend.app.contracts import AIProviderError, EvaluationDraft
 from backend.app.ai import service
 from backend.app.ai.audit import estimated_cost, usage_counts
 from backend.app.ai.config import AISettings
+from backend.app.ai.pacing import RequestGate
 from backend.app.ai.provider import ProviderReply, TransientProviderError
 from backend.app.ai.tests.test_validation import checklist, conversation, response
 
@@ -18,6 +19,7 @@ def settings(monkeypatch, tmp_path):
     cfg = AISettings(api_key="synthetic-test-key", model="gemini-synthetic", retry_base_seconds=0,
                      retry_max_seconds=0, audit_path=str(tmp_path / "usage.jsonl"))
     monkeypatch.setattr(service.AISettings, "from_env", lambda: cfg)
+    monkeypatch.setattr(service, "request_gate", RequestGate())
     return cfg
 
 
@@ -80,8 +82,9 @@ def test_truncated_response_cannot_be_accepted_even_if_json_is_valid(monkeypatch
     monkeypatch.setattr(service.provider, "generate_once", fake)
     with pytest.raises(AIProviderError) as error:
         asyncio.run(service.evaluate_dialogue(conversation(), checklist()))
-    assert error.value.code == "invalid_ai_response"
-    assert all(r["error_code"] == "incomplete_response" for r in records(settings))
+    assert error.value.code == "ai_output_limit" and not error.value.retryable
+    assert len(records(settings)) == 1
+    assert records(settings)[0]["error_code"] == "ai_output_limit"
 
 
 def test_transient_retries_and_unknown_usage_not_zero(monkeypatch, settings):

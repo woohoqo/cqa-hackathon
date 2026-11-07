@@ -66,12 +66,21 @@ def check_audit_sink(path: str):
 
 def record_attempt(settings, *, run_id: str, conversation_id: str, checklist_id: str,
                    checklist_version: int, prompt_version: str, attempt: int, status: str,
-                   reply=None, error_code: str | None = None):
+                   reply=None, error_code: str | None = None, connection_id: str = "primary",
+                   quota_group: str = "unknown", started_at: str | None = None,
+                   finished_at: str | None = None, duration_ms: float | None = None,
+                   input_sha256: str | None = None, checklist_sha256: str | None = None,
+                   request_input_sha256: str | None = None, system_instruction_sha256: str | None = None):
     usage = usage_counts(reply.usage if reply else None)
     # IDs from arbitrary imports can contain personal data; correlate with stable hashes.
     fingerprint = lambda value: hashlib.sha256(value.encode("utf-8")).hexdigest()
     record = {
         "at": datetime.now(timezone.utc).isoformat(), "run_id": run_id, "attempt": attempt,
+        "connection_id": connection_id, "quota_group": quota_group,
+        "network_attempted": True, "started_at": started_at, "finished_at": finished_at,
+        "duration_ms": duration_ms, "input_sha256": input_sha256,
+        "checklist_sha256": checklist_sha256, "request_input_sha256": request_input_sha256,
+        "system_instruction_sha256": system_instruction_sha256,
         "conversation_id_sha256": fingerprint(conversation_id),
         "checklist_id_sha256": fingerprint(checklist_id), "checklist_version": checklist_version,
         "provider": settings.provider, "requested_model": settings.model,

@@ -135,12 +135,41 @@ class CriterionResult(Contract):
     confidence: float | None = Field(default=None, ge=0, le=1)
 
 
+class AIConnectionAttempt(Contract):
+    attempt: int = Field(ge=1)
+    connection_id: Literal["primary", "backup_1", "backup_2"]
+    quota_group: str
+    provider: str = "gemini"
+    model: str = Field(min_length=1)
+    started_at: datetime
+    finished_at: datetime
+    duration_ms: float = Field(ge=0)
+    status: str
+    error_code: str | None = None
+    network_attempted: bool = True
+    total_tokens: int | None = Field(default=None, ge=0)
+    cost_usd: float | None = Field(default=None, ge=0)
+
+
+class AIExecutionMetadata(Contract):
+    run_id: str
+    selected_connection: Literal["primary", "backup_1", "backup_2"] | None = None
+    failover_used: bool = False
+    models_used: list[str] = Field(default_factory=list)
+    attempts: list[AIConnectionAttempt] = Field(default_factory=list)
+    duration_ms: float = Field(ge=0)
+    total_tokens: int | None = Field(default=None, ge=0)
+    cost_usd: float | None = Field(default=None, ge=0)
+
+
 class EvaluationDraft(Contract):
     criteria: list[CriterionResult]
     raw_response: str = Field(min_length=1, description="Exact original model response, without reserialization")
     provider: str = Field(min_length=1)
     model: str = Field(min_length=1)
     prompt_version: str = Field(min_length=1)
+    models_used: list[str] = Field(default_factory=list)
+    execution: AIExecutionMetadata | None = None
 
 
 class CriterionScore(Contract):
@@ -198,11 +227,27 @@ class Evaluation(Contract):
     final_score: ScoreSummary | None = None
     final_criteria: list[CriterionResult] | None = None
     error: ErrorDetail | None = None
+    dataset_id: Identifier | None = None
+    attempt_number: int = Field(default=1, ge=1)
+    retry_of: Identifier | None = None
+    completed_at: datetime | None = None
+    ai_execution: AIExecutionMetadata | None = None
+
+
+class Dataset(Contract):
+    id: Identifier
+    name: str = Field(min_length=1)
+    kind: Literal["dev", "prod", "test"] = "test"
+    group_id: str | None = None
+    conversation_ids: list[Identifier] = Field(min_length=1, max_length=1000)
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 class EvaluationRequest(Contract):
     conversation_ids: list[Identifier] = Field(min_length=1, max_length=100)
     checklist_id: Identifier
+    dataset_id: Identifier | None = None
+    idempotency_key: Identifier | None = None
 
     @model_validator(mode="after")
     def unique_ids(self):
@@ -211,9 +256,48 @@ class EvaluationRequest(Contract):
         return self
 
 
+class EvaluationRun(Contract):
+    id: Identifier
+    dataset_id: Identifier
+    conversation_ids: list[Identifier] = Field(min_length=1, max_length=100)
+    checklist_snapshot: ChecklistVersion
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class BatchCounts(Contract):
+    total: int = 0
+    queued: int = 0
+    running: int = 0
+    completed: int = 0
+    failed: int = 0
+
+
 class EvaluationBatch(Contract):
     id: Identifier
     evaluations: list[Evaluation]
+    run: EvaluationRun | None = None
+    counts: BatchCounts = Field(default_factory=BatchCounts)
+
+
+class RetryRequest(Contract):
+    failed_evaluation_ids: list[Identifier] = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def unique_ids(self):
+        if len(self.failed_evaluation_ids) != len(set(self.failed_evaluation_ids)):
+            raise ValueError("Retry evaluation IDs must be unique")
+        return self
+
+
+class RetryResult(Contract):
+    batch: EvaluationBatch
+    retried: int
+    skipped: int
+
+
+class OfficialExportRequest(Contract):
+    team_name: str = Field(default="cuda cuda", min_length=1, max_length=200, pattern=r"\S")
+    payload: Any | None = None  # Optional file for validation; never persisted.
 
 
 class AppealCreate(Contract):
@@ -251,12 +335,16 @@ class ReviewDecision(ReviewDecisionCreate):
 
 class ImportRequest(Contract):
     conversations: list[ConversationInput] = Field(min_length=1, max_length=1000)
+    dataset_kind: Literal["dev", "prod", "test"] = "test"
+    dataset_name: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class DevImportRequest(Contract):
     group_id: Annotated[str, Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")] = "DEV"
     api_url: Annotated[str | None, Field(max_length=8192, repr=False,
         description="Optional HTTPS organizer URL for this request only; not persisted. Omit to use server configuration.")] = None
+    dataset_kind: Literal["dev", "prod", "test"] | None = None
+    dataset_name: str | None = Field(default=None, min_length=1, max_length=200)
 
     @field_validator("api_url", mode="before")
     @classmethod
@@ -275,14 +363,17 @@ class ImportResult(Contract):
     conversations: list[Conversation]
     imported: int
     existing: int
+    dataset: Dataset | None = None
 
 
 class AIProviderError(Exception):
     """Provider errors must use a safe message (no keys, URLs or transcript content)."""
 
-    def __init__(self, code: str, message: str, *, retryable: bool = False, raw_response: str | None = None):
+    def __init__(self, code: str, message: str, *, retryable: bool = False, raw_response: str | None = None,
+                 execution: AIExecutionMetadata | None = None):
         super().__init__(message)
         self.code = code
         self.message = message
         self.retryable = retryable
         self.raw_response = raw_response
+        self.execution = execution

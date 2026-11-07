@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchEvaluationExport } from '../src/downloads.ts';
+import { fetchEvaluationExport, fetchOfficialExport } from '../src/downloads.ts';
 
 test('JSON download uses configured API origin and preserves original server bytes', async () => {
   const content = ' {"schema_version":"1","evaluations":[],"appeals":[],"decisions":[]}\n';
@@ -37,4 +37,31 @@ test('wrong-origin HTML and empty successful responses are rejected', async () =
   await assert.rejects(fetchEvaluationExport('', 'csv', async () => new Response('', {
     headers: { 'content-type': 'text/csv' },
   })), /пустой файл/);
+});
+
+test('archive is limited to the selected run, including a safely encoded ID', async () => {
+  const file = await fetchEvaluationExport('https://example.invalid/', 'json', async input => {
+    assert.equal(input, 'https://example.invalid/api/v1/exports/evaluations?format=json&batch_id=run%2Fone');
+    return new Response('{"evaluations":[]}', { headers: { 'content-type': 'application/json' } });
+  }, 'run/one');
+  assert.equal(await file.blob.text(), '{"evaluations":[]}');
+});
+
+test('official export posts team and run context and preserves the server file unchanged', async () => {
+  const content = ' {"team_name":"cuda cuda","results":[]}\n';
+  const file = await fetchOfficialExport('https://example.invalid/', 'run-one', 'cuda cuda', async (input, init) => {
+    assert.equal(input, 'https://example.invalid/api/v1/batches/run-one/official-export');
+    assert.equal(init?.method, 'POST');
+    assert.deepEqual(JSON.parse(String(init?.body)), { team_name: 'cuda cuda' });
+    return new Response(content, { headers: { 'content-type': 'application/json' } });
+  });
+  assert.equal(file.filename, 'results.json');
+  assert.equal(await file.blob.text(), content);
+});
+
+test('failed server preflight cannot be saved as an official results file', async () => {
+  await assert.rejects(fetchOfficialExport('', 'run-one', 'cuda cuda', async () => new Response(
+    JSON.stringify({ error: { code: 'official_export_invalid', message: 'Диалог synthetic-12: оценка ещё выполняется.' } }),
+    { status: 422, headers: { 'content-type': 'application/json' } },
+  )), /synthetic-12/);
 });

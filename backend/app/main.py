@@ -13,9 +13,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from .contracts import (Appeal, AppealCreate, ChecklistCreate, ChecklistVersion, Conversation,
+from .contracts import (Appeal, AppealCreate, ChecklistCreate, ChecklistVersion, Conversation, Dataset,
                         ConversationInput, DevImportRequest, ErrorResponse, Evaluation, EvaluationBatch,
-                        EvaluationRequest, ImportRequest, ImportResult, ReviewDecision, ReviewDecisionCreate)
+                        EvaluationRequest, EvaluationRun, ImportRequest, ImportResult, OfficialExportRequest,
+                        RetryRequest, RetryResult, ReviewDecision, ReviewDecisionCreate)
 from .default_checklist import official_checklist
 from .errors import AppError
 from .importers import fetch_organizer
@@ -37,6 +38,7 @@ def create_app(*, database_path: str | None = None, evaluator=None, settings: Se
         db.initialize()
         if not db.list("checklists", where="key=?", args=("freedom-cqa",), limit=1):
             service.create_checklist(official_checklist())
+        service.migrate_legacy_runs()
         service.recover_interrupted()
         workers = [asyncio.create_task(service.worker()) for _ in range(config.ai_concurrency)]
         try:
@@ -81,7 +83,7 @@ def create_app(*, database_path: str | None = None, evaluator=None, settings: Se
 
     @app.post("/api/v1/imports/json", response_model=ImportResult)
     def import_json(body: ImportRequest):
-        return service.import_conversations(body.conversations)
+        return service.import_conversations(body.conversations, dataset_kind=body.dataset_kind, dataset_name=body.dataset_name)
 
     @app.post("/api/v1/imports/dev", response_model=ImportResult)
     async def import_dev(body: DevImportRequest = DevImportRequest()):
@@ -89,7 +91,17 @@ def create_app(*, database_path: str | None = None, evaluator=None, settings: Se
         url = body.api_url if body.api_url is not None else config.dev_api_url
         if organizer_url_guard is not None:
             organizer_url_guard(url)
-        return service.import_conversations(await fetch_organizer(url, body.group_id))
+        return service.import_conversations(await fetch_organizer(url, body.group_id),
+            dataset_kind=body.dataset_kind or ("dev" if body.group_id == "DEV" else "test"),
+            dataset_name=body.dataset_name, group_id=body.group_id)
+
+    @app.get("/api/v1/datasets", response_model=list[Dataset])
+    def list_datasets(limit: int = Query(1000, ge=1, le=1000), offset: int = Query(0, ge=0)):
+        return db.list("datasets", limit=limit, offset=offset)
+
+    @app.get("/api/v1/datasets/{dataset_id}", response_model=Dataset)
+    def get_dataset(dataset_id: str):
+        return db.read("datasets", dataset_id)
 
     @app.post("/api/v1/checklists", response_model=ChecklistVersion, status_code=201)
     def create_checklist(body: ChecklistCreate):
@@ -119,6 +131,48 @@ def create_app(*, database_path: str | None = None, evaluator=None, settings: Se
     @app.get("/api/v1/batches/{batch_id}", response_model=EvaluationBatch)
     def get_batch(batch_id: str):
         return service.batch(batch_id)
+
+    @app.get("/api/v1/batches", response_model=list[EvaluationRun])
+    def list_runs(dataset_id: str | None = None, limit: int = Query(1000, ge=1, le=1000), offset: int = Query(0, ge=0)):
+        if dataset_id:
+            db.read("datasets", dataset_id)
+        return db.list("runs", where="dataset_id=?" if dataset_id else "1=1",
+                       args=(dataset_id,) if dataset_id else (), limit=limit, offset=offset)
+
+    @app.get("/api/v1/batches/{batch_id}/attempts", response_model=list[Evaluation])
+    def list_attempts(batch_id: str):
+        return service.attempts(batch_id)
+
+    @app.post("/api/v1/batches/{batch_id}/retry", response_model=RetryResult)
+    def retry_failed(batch_id: str, body: RetryRequest):
+        return service.retry_failed(batch_id, body)
+
+    @app.post("/api/v1/batches/{batch_id}/official-export/validate")
+    def validate_official_export(batch_id: str, body: OfficialExportRequest):
+        from .official_export import build_official_export, validate_official_export as validate, OfficialExportError
+        dataset, conversations, evaluations = service.official_inputs(batch_id)
+        try:
+            payload = body.payload if body.payload is not None else build_official_export(
+                conversations, evaluations, body.team_name, dataset.kind)
+            return validate(payload, conversations, evaluations=evaluations, dataset_kind=dataset.kind,
+                            expected_team_name=body.team_name)
+        except OfficialExportError as exc:
+            return exc.report
+
+    @app.post("/api/v1/batches/{batch_id}/official-export")
+    def download_official_export(batch_id: str, body: OfficialExportRequest):
+        from .official_export import build_official_export, OfficialExportError
+        if body.payload is not None:
+            raise AppError(422, "generated_export_only", "Выгружаются только сохранённые сервером результаты выбранного запуска.")
+        dataset, conversations, evaluations = service.official_inputs(batch_id)
+        try:
+            payload = build_official_export(conversations, evaluations, body.team_name, dataset.kind)
+        except OfficialExportError as exc:
+            issues = exc.report.get("errors", [])
+            message = "; ".join((f"{item['conversation_id']}: " if item.get("conversation_id") else "") + item["message"] for item in issues[:5])
+            raise AppError(422, "official_export_invalid", message or "Официальный JSON не прошёл проверку.") from None
+        return Response(json.dumps(payload, ensure_ascii=False, allow_nan=False, indent=2), media_type="application/json",
+                        headers={"Content-Disposition": 'attachment; filename="results.json"'})
 
     @app.post("/api/v1/evaluations/{evaluation_id}/appeals", response_model=Appeal, status_code=201)
     def create_appeal(evaluation_id: str, body: AppealCreate):

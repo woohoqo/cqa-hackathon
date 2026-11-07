@@ -1,0 +1,520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CQA official results JSON 1.0",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0"
+    },
+    "team_name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "model": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "enum": [
+            "local",
+            "external_api",
+            "hybrid"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      },
+      "required": [
+        "mode",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "status": {
+                "const": "ok"
+              },
+              "criteria": {
+                "type": "array",
+                "minItems": 8,
+                "maxItems": 8,
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "criterion_id": {
+                          "const": "contact"
+                        },
+                        "value": {
+                          "type": "boolean"
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        "evidence_turns": {
+                          "type": "array",
+                          "minItems": 1,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "criterion_id",
+                        "value",
+                        "rationale",
+                        "evidence_turns"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "criterion_id": {
+                          "const": "discovery"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        "evidence_turns": {
+                          "type": "array",
+                          "minItems": 1,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "criterion_id",
+                        "value",
+                        "rationale",
+                        "evidence_turns"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "criterion_id": {
+                          "const": "identification"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        "evidence_turns": {
+                          "type": "array",
+                          "minItems": 1,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "criterion_id",
+                        "value",
+                        "rationale",
+                        "evidence_turns"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "criterion_id": {
+                          "const": "consultation"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "number",
+                              "enum": [
+                                0,
+                                5,
+                                10,
+                                15,
+                                20
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        "evidence_turns": {
+                          "type": "array",
+                          "minItems": 1,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "criterion_id",
+                        "value",
+                        "rationale",
+                        "evidence_turns"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "criterion_id": {
+                          "const": "empathy"
+                        },
+                        "value": {
+                          "type": "boolean"
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        "evidence_turns": {
+                          "type": "array",
+                          "minItems": 1,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "criterion_id",
+                        "value",
+                        "rationale",
+                        "evidence_turns"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "criterion_id": {
+                          "const": "dialogue"
+                        },
+                        "value": {
+                          "type": "number",
+                          "enum": [
+                            0,
+                            4,
+                            7,
+                            10
+                          ]
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        "evidence_turns": {
+                          "type": "array",
+                          "minItems": 1,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "criterion_id",
+                        "value",
+                        "rationale",
+                        "evidence_turns"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "criterion_id": {
+                          "const": "closure"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        "evidence_turns": {
+                          "type": "array",
+                          "minItems": 1,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "criterion_id",
+                        "value",
+                        "rationale",
+                        "evidence_turns"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "criterion_id": {
+                          "const": "critical"
+                        },
+                        "value": {
+                          "type": "boolean"
+                        },
+                        "rationale": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        "evidence_turns": {
+                          "type": "array",
+                          "minItems": 1,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
+                      },
+                      "required": [
+                        "criterion_id",
+                        "value",
+                        "rationale",
+                        "evidence_turns"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "allOf": [
+                  {
+                    "contains": {
+                      "properties": {
+                        "criterion_id": {
+                          "const": "contact"
+                        }
+                      }
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": {
+                      "properties": {
+                        "criterion_id": {
+                          "const": "discovery"
+                        }
+                      }
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": {
+                      "properties": {
+                        "criterion_id": {
+                          "const": "identification"
+                        }
+                      }
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": {
+                      "properties": {
+                        "criterion_id": {
+                          "const": "consultation"
+                        }
+                      }
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": {
+                      "properties": {
+                        "criterion_id": {
+                          "const": "empathy"
+                        }
+                      }
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": {
+                      "properties": {
+                        "criterion_id": {
+                          "const": "dialogue"
+                        }
+                      }
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": {
+                      "properties": {
+                        "criterion_id": {
+                          "const": "closure"
+                        }
+                      }
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  },
+                  {
+                    "contains": {
+                      "properties": {
+                        "criterion_id": {
+                          "const": "critical"
+                        }
+                      }
+                    },
+                    "minContains": 1,
+                    "maxContains": 1
+                  }
+                ]
+              },
+              "score": {
+                "type": "object",
+                "properties": {
+                  "final_score": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "multipleOf": 0.01
+                  },
+                  "critical_flag": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "final_score",
+                  "critical_flag"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "conversation_id",
+              "status",
+              "criteria",
+              "score"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "conversation_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "status": {
+                "const": "error"
+              },
+              "criteria": {
+                "type": "array",
+                "maxItems": 0
+              },
+              "score": {
+                "type": "null"
+              },
+              "error": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              }
+            },
+            "required": [
+              "conversation_id",
+              "status",
+              "criteria",
+              "score",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "team_name",
+    "model",
+    "results"
+  ],
+  "additionalProperties": false
+}

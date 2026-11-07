@@ -1,0 +1,208 @@
+{
+  "status": "automatically_proposed_groups_require_human_review",
+  "notes": [
+    "All 65 records grouped before selecting 26.",
+    "Conservative combined topic groups account for multi-topic translations.",
+    "Pilot is tuning only; human A/B review must precede holdout freeze.",
+    "No gold labels are provided."
+  ],
+  "groups": [
+    {
+      "scenario_group_id": "service_reports",
+      "split": "tuning",
+      "conversation_ids": [
+        "p1-ru-001",
+        "p1-ru-002",
+        "p1-ru-003",
+        "p1-ru-006",
+        "p1-ru-010",
+        "p1-ru-011",
+        "p1-ru-027",
+        "p1-ru-030",
+        "p1-kz-001",
+        "p1-kz-003",
+        "p1-kz-006",
+        "p1-en-003",
+        "p1-en-004",
+        "p1-en-006"
+      ]
+    },
+    {
+      "scenario_group_id": "funding_details",
+      "split": "holdout",
+      "conversation_ids": [
+        "p1-ru-004",
+        "p1-ru-005",
+        "p1-ru-026",
+        "p1-kz-002",
+        "p1-en-005"
+      ]
+    },
+    {
+      "scenario_group_id": "profile_update",
+      "split": "tuning",
+      "conversation_ids": [
+        "p1-ru-007",
+        "p1-ru-008",
+        "p1-ru-028",
+        "p1-kz-004",
+        "p1-kz-005",
+        "p1-en-007"
+      ]
+    },
+    {
+      "scenario_group_id": "restriction_identity",
+      "split": "holdout",
+      "conversation_ids": [
+        "p1-ru-009",
+        "p1-kz-015",
+        "p1-en-014"
+      ]
+    },
+    {
+      "scenario_group_id": "form_language",
+      "split": "holdout",
+      "conversation_ids": [
+        "p1-ru-012",
+        "p1-kz-014",
+        "p1-en-011"
+      ]
+    },
+    {
+      "scenario_group_id": "corporate_statements",
+      "split": "holdout",
+      "conversation_ids": [
+        "p1-ru-013",
+        "p1-en-012"
+      ]
+    },
+    {
+      "scenario_group_id": "website_login",
+      "split": "tuning",
+      "conversation_ids": [
+        "p1-ru-014",
+        "p1-ru-016",
+        "p1-ru-029",
+        "p1-kz-008",
+        "p1-en-002",
+        "p1-en-015"
+      ]
+    },
+    {
+      "scenario_group_id": "login_reuse",
+      "split": "holdout",
+      "conversation_ids": [
+        "p1-ru-015",
+        "p1-kz-007",
+        "p1-en-001"
+      ]
+    },
+    {
+      "scenario_group_id": "security_search_margin",
+      "split": "holdout",
+      "conversation_ids": [
+        "p1-ru-017",
+        "p1-ru-019",
+        "p1-ru-020",
+        "p1-kz-009",
+        "p1-kz-010",
+        "p1-en-008",
+        "p1-en-009"
+      ]
+    },
+    {
+      "scenario_group_id": "order_processing",
+      "split": "holdout",
+      "conversation_ids": [
+        "p1-ru-018",
+        "p1-kz-012",
+        "p4-ru-002",
+        "p4-ru-003",
+        "p4-ru-004"
+      ]
+    },
+    {
+      "scenario_group_id": "exchanges",
+      "split": "holdout",
+      "conversation_ids": [
+        "p1-ru-021"
+      ]
+    },
+    {
+      "scenario_group_id": "private_advice",
+      "split": "tuning",
+      "conversation_ids": [
+        "p1-ru-022",
+        "p1-ru-023",
+        "p1-kz-013",
+        "p1-en-013"
+      ]
+    },
+    {
+      "scenario_group_id": "account_types",
+      "split": "holdout",
+      "conversation_ids": [
+        "p1-ru-024",
+        "p1-kz-011",
+        "p1-en-010"
+      ]
+    },
+    {
+      "scenario_group_id": "no_request",
+      "split": "tuning",
+      "conversation_ids": [
+        "p1-ru-025"
+      ]
+    },
+    {
+      "scenario_group_id": "advice_service_call",
+      "split": "tuning",
+      "conversation_ids": [
+        "p4-ru-001"
+      ]
+    },
+    {
+      "scenario_group_id": "registration_call",
+      "split": "holdout",
+      "conversation_ids": [
+        "p4-ru-005"
+      ]
+    }
+  ],
+  "selected": [
+    "p1-ru-001",
+    "p1-ru-006",
+    "p1-kz-003",
+    "p1-en-006",
+    "p1-ru-007",
+    "p1-kz-005",
+    "p1-ru-029",
+    "p1-en-015",
+    "p1-kz-013",
+    "p1-en-013",
+    "p1-ru-025",
+    "p4-ru-001",
+    "p1-kz-002",
+    "p1-en-005",
+    "p1-ru-009",
+    "p1-kz-015",
+    "p1-en-014",
+    "p1-kz-014",
+    "p1-en-011",
+    "p1-en-009",
+    "p1-ru-018",
+    "p4-ru-002",
+    "p4-ru-003",
+    "p4-ru-004",
+    "p4-ru-005",
+    "p1-kz-011"
+  ],
+  "pilot": [
+    "p1-ru-001",
+    "p1-kz-003",
+    "p1-en-015",
+    "p1-kz-013",
+    "p1-ru-025",
+    "p4-ru-001"
+  ]
+}

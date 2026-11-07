@@ -426,9 +426,14 @@ def compare_report(payload):
         'checklist_hash': payload['checklist_hash'], 'reference_source': payload['reference_source'],
         'comparison_kind': 'model_agreement' if payload['reference_source'] == 'model_proposal' else 'reference_accuracy',
         'scoring_rubric': 'default_organizer_checklist_8_criteria',
+        'attempt_unit': ('backend_evaluation_job' if isinstance(payload.get('adapter_notes'), dict)
+                         and payload['adapter_notes'].get('attempt_unit') == 'backend_evaluation_job'
+                         else 'recorded_attempt'),
+        'provider_call_count': None,
         'notes': ['Accuracy is not established when labelled=0.',
                   'Only immutable original_ai responses are compared; appeal outcomes are ignored.',
-                  'Mock results do not establish live model quality.'],
+                  'Mock results do not establish live model quality.',
+                  'Provider call count/internal retries are unknown unless a complete provider ledger is supplied; backend jobs are not provider calls.'],
         'reference_diagnostics': {
             'selected_source_records': selected_source_count, 'usable_records': len(references),
             'invalid_or_unfinished': reference_issues,

@@ -8,6 +8,7 @@ python -m qa.prepare
 python -m unittest qa.test_compare qa.test_audit_selection -v
 python -m pytest backend/tests qa -q
 python -m qa.compare C:\private\run.json --output C:\private\report.json
+python -m qa.render_report C:\private\report.json C:\private\report.md
 ```
 
 Создайте `qa/local-results/` перед записью аудита. `qa.prepare` по умолчанию использует опубликованный обезличенный `qa/data-audit.json`; при другом DEV сначала обновите его осознанно и пересмотрите группы. Изменение выборки после настройки модели требует новой версии и объяснения.
@@ -17,6 +18,7 @@ python -m qa.compare C:\private\run.json --output C:\private\report.json
 - [Интеграция](integration.md): уровни mock/live, приёмочные тесты и запросы агенту 1.
 - [Защита](demo-script.md): сценарий до пяти минут.
 - [Статус проверки](status.md): выполненное, сбои, неизвестное.
+- [Независимые backend-проверки](backend-findings.md): воспроизведение блокировки HTTP и ограничения телеметрии.
 
 ## Отчёт сравнения
 
@@ -31,3 +33,7 @@ python -m qa.compare C:\private\run.json --output C:\private\report.json
 Стоимость — сумма всех попыток, включая неуспешные, только если она известна; иначе total=null с известной частичной суммой и покрытием. Время попыток не выдаётся за время UI/очереди/backoff. Прямой экспорт backend пока не содержит всей телеметрии провайдера; ограничения отмечать явно.
 
 Истинные результаты и источники хранятся вне Git или в игнорируемых `qa/private/`, `qa/local-results/`. В отчёт не переносить exception bodies, исходные транскрипты, raw_response, API keys или аудиоссылки. При ревью staging дополнительно проверить отсутствие этих данных.
+
+`qa/export_run.py` преобразует backend JSON export + sidecar, записанный при отправке заданий, в этот формат. Поля sidecar и команда находятся в docstring. Не угадывать attempt number/mode по сортировке экспорта. Записанная единица здесь — backend evaluation job; количество внутренних вызовов/повторов провайдера остаётся неизвестным. Сравниватель сохраняет это ограничение в отчёте.
+
+`docs/qa/measurement-readiness.md` — текущий отчёт без запусков и без меток, не результат измерения AI. Реальные отчёты после разметки/запусков формируются командами выше. Читаемый Markdown дополняет подробный JSON, в котором остаются ID и результаты каждой попытки.

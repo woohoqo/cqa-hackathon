@@ -104,6 +104,22 @@ class ScoringTests(unittest.TestCase):
 
 
 class ComparisonTests(unittest.TestCase):
+    def test_backend_job_unit_does_not_imply_provider_call_count(self):
+        data = payload()
+        data['adapter_notes'] = {'attempt_unit': 'backend_evaluation_job'}
+        report = compare_report(data)
+        self.assertEqual(report['attempt_unit'], 'backend_evaluation_job')
+        self.assertIsNone(report['provider_call_count'])
+
+    def test_empty_report_is_not_claimed_model_quality(self):
+        from qa.render_report import render
+        data = payload(); data['references'] = []; data['attempts'] = []
+        report = compare_report(data)
+        rendered = render(report)
+        self.assertIn('Точность не установлена', rendered)
+        self.assertIn('Запусков нет', rendered)
+        self.assertNotIn('0.00%', rendered)
+
     def test_perfect_synthetic_pair(self):
         report = compare_report(payload())
         primary = report['overall']['primary_first_attempt']

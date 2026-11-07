@@ -6,6 +6,31 @@ its tested revision and distinguishes mocked tests from actual model calls. The 
 reports near the end of this file describe earlier revisions, not the current test coverage
 or a present network restriction. QA findings AI-QA-002/003 remain open accuracy limitations.
 
+## Applicability before grading — prompt v1.1.0
+
+Each criterion's internal model response now begins with a required `applicability` field.
+For `allow_na=true`, it contains `na_condition_applies`, a brief factual `reasoning` and
+nonempty original `evidence_message_ids`. The schema includes that criterion's current
+`na_condition`, including newly added/replaced criteria. A true condition decision requires
+`value="N/A"`; false requires a boolean/flag/configured scale answer. For `allow_na=false`,
+the field must be explicitly null. The two booleans have different meanings: a true N/A
+condition means inapplicable, not successful performance.
+
+Validation rejects a contradictory condition/grade pair and uses the existing bounded,
+same-connection format-repair path. It never rewrites a grade or recognizes special IDs,
+languages or phrases. Applicability references and its brief explanation are projected into
+the existing result evidence/reasoning; `raw_response` remains exact. Shared DTOs, scoring,
+model, temperature, reserve policy and total attempt/time budgets are unchanged. Existing
+stored evaluations retain their old prompt version and raw text; they are not revalidated
+against the new wire protocol. Synthetic evaluator mocks must include the new field.
+
+This addresses an observed structural gap: the old response could admit that an action was
+unnecessary in free-text reasoning yet return true. Structural consistency still cannot
+prove that the model's applicability decision is factually correct. Tests include applicable
+positive/negative controls and dynamic boolean, scale and flag criteria; they do not establish
+RU/KZ/EN accuracy. The integrator/QA report records the separately authorized, controlled live
+old/new comparison. No real model call was made while implementing this change.
+
 ## Reserve connections (current implementation, 2026-11-08)
 
 The evaluator supports **основной**, **резерв 1**, **резерв 2**, in that order.

@@ -29,14 +29,16 @@ def checklist():
         ])
 
 
-def decision(value=True):
-    return {"value": value, "reasoning": "Synthetic structural explanation.",
+def decision(value=True, *, allow_na=False):
+    applicability = ({"na_condition_applies": value == "N/A", "reasoning": "Synthetic applicability facts.",
+                      "evidence_message_ids": ["operator"]} if allow_na else None)
+    return {"applicability": applicability, "value": value, "reasoning": "Synthetic structural explanation.",
             "evidence_message_ids": ["operator"], "evidence_kind": "observed",
             "checked_message_ids": [], "expected_action": None, "na_condition_met": None}
 
 
 def response():
-    return {"criteria": {"new/unknown-Ж": decision(), "scale": decision(9), "flag": decision(False)}}
+    return {"criteria": {"new/unknown-Ж": decision(allow_na=True), "scale": decision(9), "flag": decision(False)}}
 
 
 def validate(data):
@@ -110,6 +112,7 @@ def test_invalid_coverage_and_evidence(case):
 
 def test_bot_and_system_evidence_are_accepted_as_context():
     data = response(); data["criteria"]["new/unknown-Ж"]["evidence_message_ids"] = ["bot", "system"]
+    data["criteria"]["new/unknown-Ж"]["applicability"]["evidence_message_ids"] = ["bot", "system"]
     assert validate(data)[0].evidence_message_ids == ["bot", "system"]
 
 
@@ -133,6 +136,7 @@ def test_absence_rejects_missing_noncontiguous_reversed_or_unanchored_region(ref
 def test_na_requires_allowed_condition_and_projects_explanation():
     data = response(); item = data["criteria"]["new/unknown-Ж"]
     item.update(value="N/A", evidence_kind="not_applicable", na_condition_met="No applicable request: synthetic facts.")
+    item["applicability"]["na_condition_applies"] = True
     assert "Условие N/A:" in validate(data)[0].reasoning
     item["na_condition_met"] = None
     with pytest.raises(InvalidResponse): validate(data)

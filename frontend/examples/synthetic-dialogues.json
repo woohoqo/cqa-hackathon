@@ -1,0 +1,17 @@
+{
+  "conversations": [
+    {
+      "external_id": "SYNTHETIC-EXAMPLE-RU",
+      "source": "synthetic-example",
+      "metadata": { "language": "RU", "channel": "agent chat", "synthetic": true },
+      "messages": [
+        { "id": "s1", "role": "system", "timestamp": "00:00", "text": "Синтетический пример. Чат открыт." },
+        { "id": "s2", "role": "client", "timestamp": "00:02", "text": "Здравствуйте! Где найти тарифы?" },
+        { "id": "s3", "role": "bot", "timestamp": "00:03", "text": "Подключаю оператора." },
+        { "id": "s4", "role": "operator", "timestamp": "00:10", "text": "Здравствуйте, меня зовут Анна. Тарифы доступны в разделе «Документы»." },
+        { "id": "s5", "role": "client", "timestamp": "00:30", "text": "Спасибо, нашёл." },
+        { "id": "s6", "role": "system", "timestamp": "00:35", "text": "Чат закрыт." }
+      ]
+    }
+  ]
+}

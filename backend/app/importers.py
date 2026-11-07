@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from .contracts import ConversationInput, ImportRequest, MessageInput
 from .errors import AppError
+from .import_url import valid_organizer_url
 
 
 def organizer_payload(payload: object, group_id: str) -> list[ConversationInput]:
@@ -41,10 +42,10 @@ def organizer_payload(payload: object, group_id: str) -> list[ConversationInput]
 
 def organizer_url(base_url: str, group_id: str) -> str:
     if not base_url:
-        raise AppError(503, "dev_not_configured", "Заполните DEV_API_URL полной подписанной ссылкой из Student Guide в локальном .env.")
-    parts = urlsplit(base_url)
-    if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
+        raise AppError(503, "dev_not_configured", "Вставьте HTTPS-ссылку API организаторов в поле «Ссылка API организаторов».")
+    if not valid_organizer_url(base_url):
         raise AppError(503, "invalid_dev_configuration", "DEV_API_URL должен содержать корректную HTTPS-ссылку организаторов.")
+    parts = urlsplit(base_url)
     # Preserve the signed query bytes; rewrite only group_id.
     query = [piece for piece in parts.query.split("&") if unquote_plus(piece.split("=", 1)[0]) != "group_id" and piece]
     query.append("group_id=" + quote(group_id, safe=""))

@@ -534,6 +534,20 @@
           "pattern": "^[A-Za-z0-9_-]+$",
           "title": "Group Id",
           "type": "string"
+        },
+        "api_url": {
+          "anyOf": [
+            {
+              "maxLength": 8192,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional HTTPS organizer URL for this request only; not persisted. Omit to use server configuration.",
+          "title": "Api Url"
         }
       },
       "title": "DevImportRequest",

@@ -1,8 +1,10 @@
 """Security and data isolation of the opt-in shared demo, using synthetic inputs only."""
 import base64
 import json
+from pathlib import Path
 
 import pytest
+import httpx
 from fastapi.testclient import TestClient
 
 from backend.app import demo
@@ -14,6 +16,7 @@ PASSWORD = "synthetic-demo-password-for-tests"
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(demo, "ROOT", tmp_path)
     monkeypatch.setenv("CQA_DEMO_PASSWORD", PASSWORD)
+    monkeypatch.delenv("CQA_DEMO_ORGANIZER_ENDPOINT", raising=False)
     for key, value in {"DATABASE_PATH": str(tmp_path / "original.sqlite3"),
                        "DEV_API_URL": "https://example.invalid/must-not-fetch",
                        "AI_USAGE_LOG_PATH": str(tmp_path / "original.jsonl")}.items():
@@ -83,11 +86,61 @@ def test_cross_origin_mutations_rejected_before_data_changes(client, headers):
     assert client.get("/api/v1/conversations").json() == before
 
 
-@pytest.mark.parametrize("body", [{}, {"api_url": "https://example.invalid/synthetic-override", "group_id": "DEV"}])
-def test_dev_import_cannot_fetch_private_organizer_data(client, body):
-    response = client.post("/api/v1/imports/dev", json=body, auth=("demo", PASSWORD))
+def test_demo_never_uses_the_server_signed_link_as_a_fallback(client):
+    response = client.post("/api/v1/imports/dev", json={}, auth=("demo", PASSWORD))
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "demo_api_url_required"
+
+
+@pytest.mark.parametrize("url", [
+    "https://localhost/must-not-fetch", "https://127.0.0.1/must-not-fetch", "https://[::1]/must-not-fetch",
+    "https://10.0.0.1/must-not-fetch", "https://example.invalid.attacker.invalid/must-not-fetch",
+    "https://example.invalid:8443/must-not-fetch", "https://example.invalid/another-endpoint",
+    "https://example.invalid/must-not-fetch/", "https://example.invalid/a/../must-not-fetch",
+    "https://example.invalid/%6dust-not-fetch",
+])
+def test_demo_import_rejects_other_destinations_before_fetch(client, monkeypatch, url):
+    async def forbidden(*args):
+        pytest.fail("Untrusted endpoint must be rejected before network access")
+    monkeypatch.setattr("backend.app.main.fetch_organizer", forbidden)
+    response = client.post("/api/v1/imports/dev", json={"api_url": url}, auth=("demo", PASSWORD))
     assert response.status_code == 403
-    assert response.json()["error"]["code"] == "demo_dev_import_disabled"
+    assert response.json()["error"]["code"] == "demo_organizer_url_denied"
+    assert url not in response.text
+
+
+def test_demo_import_accepts_only_explicit_owner_endpoint_without_saving_signature(client, monkeypatch):
+    seen = []
+    def response(request):
+        seen.append(str(request.url))
+        return httpx.Response(200, json={"isSuccess": True, "data": {
+            "dataset_group_id": "CONTROL_1", "total_records": 1, "records": [{
+                "conversation_id": "synthetic-organizer-input", "channel": "agent chat", "language": "RU",
+                "transcript": [{"speaker": "client", "text": "Synthetic input", "timestamp": "00:00"}]
+            }]}})
+    original = httpx.AsyncClient
+    monkeypatch.setattr("backend.app.importers.httpx.AsyncClient", lambda **kw:
+                        original(**kw, trust_env=False, transport=httpx.MockTransport(response)))
+    url = "https://example.invalid:443/must-not-fetch?sig=SYNTHETIC%2b%2F&group_id=OLD"
+    client.auth = ("demo", PASSWORD)
+    result = client.post("/api/v1/imports/dev", json={"api_url": url, "group_id": "CONTROL_1"},
+                         headers={"Origin": "https://demo.example"})
+    assert result.status_code == 200 and result.json()["imported"] == 1
+    assert client.post("/api/v1/imports/dev", json={"api_url": url, "group_id": "CONTROL_1"}).json()["existing"] == 1
+    assert all(u == "https://example.invalid/must-not-fetch?sig=SYNTHETIC%2b%2F&group_id=CONTROL_1" for u in seen)
+    assert "SYNTHETIC%2b" not in client.get("/api/v1/conversations").text
+    assert client.post("/api/v1/imports/dev", json={}).status_code == 422
+    assert len(seen) == 2
+    db = client.app.state.service.db
+    assert b"SYNTHETIC%2b" not in Path(db.path).read_bytes()
+
+
+def test_unconfigured_demo_destination_stays_closed():
+    from backend.app.errors import AppError
+    for endpoint in ("", "http://example.invalid", "https://example.invalid:8443"):
+        with pytest.raises(AppError) as error:
+            demo.organizer_import_guard(endpoint)("https://example.invalid")
+        assert error.value.code == "demo_organizer_not_configured"
 
 
 def test_demo_without_password_refuses_to_start(monkeypatch):

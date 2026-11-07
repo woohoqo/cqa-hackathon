@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api, friendlyError } from './api';
 import { parseImport } from './display';
 import { ErrorNotice, Icon, Modal } from './components';
+import { organizerGroupFromUrl } from './organizerImport';
 import type { ImportResult } from './types';
 
 export function ImportDialog({ onClose, onImported }: { onClose: () => void; onImported: (result: ImportResult) => Promise<void> }) {
@@ -33,19 +34,24 @@ export function ImportDialog({ onClose, onImported }: { onClose: () => void; onI
       <label className="field">Или вставьте JSON<textarea rows={9} value={text} disabled={busy} spellCheck={false} onChange={e => setText(e.target.value)} placeholder={'{"conversations": [{"external_id": "…", "messages": […]}]}'} /></label>
       <p className="help">До 1000 диалогов за один импорт. Пример с вымышленными данными доступен в frontend/examples/.</p>
     </> : <div className="import-dev">
-      <div className="empty-icon"><Icon name="chat" size={26} /></div>
-      <h3>Набор организаторов</h3>
-      <p>Вставьте ссылку API и укажите группу набора. Сервер загрузит диалоги по этой ссылке.</p>
-      <label className="field">Ссылка API организаторов
-        <input type="url" value={apiUrl} maxLength={8192} disabled={busy} autoComplete="off" spellCheck={false}
-          onChange={e => setApiUrl(e.target.value)} placeholder="https://…" aria-describedby="import-url-help" />
-      </label>
-      <p id="import-url-help" className="help">Ссылка используется только для текущего импорта и очищается при закрытии окна. Если оставить поле пустым, используется настройка сервера.</p>
-      <label className="field">Группа набора
-        <input value={groupId} maxLength={100} disabled={busy} autoComplete="off" spellCheck={false}
-          onChange={e => setGroupId(e.target.value)} placeholder="DEV" aria-describedby="import-group-help" />
-      </label>
-      <p id="import-group-help" className="help">Только ID группы, например DEV или CONTROL_1. Для контрольного набора введите group_id от организаторов.</p>
+      <div className="import-dev-heading"><span className="import-dev-icon"><Icon name="upload" size={22} /></span>
+        <div><h3>Набор организаторов</h3><p>Ссылка → группа → готовые диалоги</p></div></div>
+      <div className="import-step"><span className="import-step-number" aria-hidden="true">01</span><div>
+        <label className="field">Ссылка API организаторов
+          <input type="url" value={apiUrl} maxLength={8192} disabled={busy} autoComplete="off" spellCheck={false}
+            onChange={e => { const value = e.target.value; setApiUrl(value); const group = organizerGroupFromUrl(value); if (group) setGroupId(group); setError(''); }}
+            placeholder="Вставьте полную HTTPS-ссылку" aria-describedby="import-url-help" />
+        </label>
+        <p id="import-url-help" className="help">Включая все параметры после «?». Ссылка используется для одного импорта и очищается при закрытии окна.</p>
+      </div></div>
+      <div className="import-step"><span className="import-step-number" aria-hidden="true">02</span><div>
+        <label className="field">Группа набора
+          <input value={groupId} maxLength={100} disabled={busy} autoComplete="off" spellCheck={false}
+            onChange={e => { setGroupId(e.target.value); setError(''); }} placeholder="DEV" aria-describedby="import-group-help" />
+        </label>
+        <p id="import-group-help" className="help">Подставляется из ссылки, если в ней есть group_id. Можно изменить: это значение заменит group_id при загрузке.</p>
+      </div></div>
+      <p className="import-access-note">Диалоги будут сохранены на сайте и доступны его участникам. Повторный импорт не создаёт дубли.</p>
     </div>}
     {error && <ErrorNotice message={error} />}
     <div className="modal-actions"><button className="button secondary" onClick={onClose} disabled={busy}>Отмена</button><button className="button primary" disabled={busy || (mode === 'json' ? !text.trim() : !groupId.trim())} onClick={() => void submit()}>{busy ? 'Импортируем…' : 'Импортировать'}</button></div>

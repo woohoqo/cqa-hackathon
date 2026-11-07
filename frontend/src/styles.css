@@ -250,10 +250,15 @@ main > .notice, main > .batch-progress { max-width: 1344px; margin: 22px auto; }
 .file-picker:focus-within { outline: 2px solid #c7f34d; outline-offset: 4px; }
 .modal textarea { font-family: var(--mono); font-size: 12px; }
 .modal-actions { display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid var(--border); padding-top: 24px; margin-top: 25px; }
-.import-dev { padding: 30px 5px; text-align: center; }
-.import-dev h3 { font-family: var(--display); font-size: 28px; font-weight: 500; text-transform: uppercase; }
-.import-dev p { font-size: 13px; line-height: 1.8; margin-top: 12px; color: var(--muted); }
-.import-dev .field { margin-top: 22px; text-align: left; }
+.import-dev { padding: 22px 0 0; text-align: left; }
+.import-dev-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.import-dev-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid #c5f64a45; border-radius: 12px; color: #c5f64a; background: #c5f64a0d; }
+.import-dev h3 { font-family: var(--display); font-size: 27px; font-weight: 500; text-transform: uppercase; margin: 0; }
+.import-dev-heading p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.import-step { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding: 18px 0; border-top: 1px solid var(--border); }
+.import-step-number { font-family: var(--mono); font-size: 11px; color: #c5f64a; padding-top: 3px; }
+.import-step input { font-family: var(--mono); font-size: 13px; }
+.import-dev .import-access-note { padding: 12px 14px; margin: 5px 0 0; border-radius: 8px; background: #ffffff06; color: var(--muted); font-size: 12px; line-height: 1.7; }
 .review-selector { max-width: 1344px; margin: 0 auto 30px; padding: 22px 26px; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: end; gap: 30px; border-radius: 7px; background: #102e22; }
 .review-selector .help { margin: 0 0 4px; }
 main[data-page=checklist] > div:not([hidden]):not(.page-heading):not(.notice):not(.batch-progress) { padding: 0 max(48px, calc((100vw - 1344px) / 2)) 48px; }

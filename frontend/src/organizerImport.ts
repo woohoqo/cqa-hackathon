@@ -1,4 +1,11 @@
 /** Validate a transient import request without rewriting a signed URL. */
+export function organizerGroupFromUrl(apiUrl: string): string | undefined {
+  try {
+    const group = new URL(apiUrl.trim()).searchParams.get('group_id');
+    return group && /^[A-Za-z0-9_-]{1,100}$/.test(group) ? group : undefined;
+  } catch { return undefined; }
+}
+
 export function organizerImportRequest(groupId: string, apiUrl = ''): { group_id: string; api_url?: string } {
   const group_id = groupId.trim();
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(group_id)) {

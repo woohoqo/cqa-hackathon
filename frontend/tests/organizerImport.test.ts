@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { organizerImportRequest } from '../src/organizerImport.ts';
+import { organizerGroupFromUrl, organizerImportRequest } from '../src/organizerImport.ts';
+
+test('suggests the dataset in the pasted URL without rewriting the signed link', () => {
+  assert.equal(organizerGroupFromUrl('https://example.invalid/api?sig=SYNTHETIC%2b&group_id=CONTROL_1'), 'CONTROL_1');
+  assert.equal(organizerGroupFromUrl(' https://example.invalid/api?group_id=%44EV '), 'DEV');
+  for (const value of ['not a URL', 'https://example.invalid/api', 'https://example.invalid/api?group_id=invalid%20group']) {
+    assert.equal(organizerGroupFromUrl(value), undefined);
+  }
+});
 
 test('preserves a signed URL exactly while trimming input edges', () => {
   const api_url = 'https://example.invalid/api?sig=SYNTHETIC%2b%2F%3D&group_id=OLD';

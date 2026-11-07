@@ -1,5 +1,194 @@
 {
   "$defs": {
+    "AIConnectionAttempt": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "connection_id": {
+          "enum": [
+            "primary",
+            "backup_1",
+            "backup_2"
+          ],
+          "title": "Connection Id",
+          "type": "string"
+        },
+        "quota_group": {
+          "title": "Quota Group",
+          "type": "string"
+        },
+        "provider": {
+          "default": "gemini",
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "title": "Finished At",
+          "type": "string"
+        },
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "number"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Code"
+        },
+        "network_attempted": {
+          "default": true,
+          "title": "Network Attempted",
+          "type": "boolean"
+        },
+        "total_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Tokens"
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Usd"
+        }
+      },
+      "required": [
+        "attempt",
+        "connection_id",
+        "quota_group",
+        "model",
+        "started_at",
+        "finished_at",
+        "duration_ms",
+        "status"
+      ],
+      "title": "AIConnectionAttempt",
+      "type": "object"
+    },
+    "AIExecutionMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "selected_connection": {
+          "anyOf": [
+            {
+              "enum": [
+                "primary",
+                "backup_1",
+                "backup_2"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Connection"
+        },
+        "failover_used": {
+          "default": false,
+          "title": "Failover Used",
+          "type": "boolean"
+        },
+        "models_used": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Models Used",
+          "type": "array"
+        },
+        "attempts": {
+          "items": {
+            "$ref": "#/$defs/AIConnectionAttempt"
+          },
+          "title": "Attempts",
+          "type": "array"
+        },
+        "duration_ms": {
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "number"
+        },
+        "total_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Tokens"
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Usd"
+        }
+      },
+      "required": [
+        "run_id",
+        "duration_ms"
+      ],
+      "title": "AIExecutionMetadata",
+      "type": "object"
+    },
     "AnswerType": {
       "enum": [
         "boolean",
@@ -132,6 +321,38 @@
         "author"
       ],
       "title": "AppealCreate",
+      "type": "object"
+    },
+    "BatchCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "total": {
+          "default": 0,
+          "title": "Total",
+          "type": "integer"
+        },
+        "queued": {
+          "default": 0,
+          "title": "Queued",
+          "type": "integer"
+        },
+        "running": {
+          "default": 0,
+          "title": "Running",
+          "type": "integer"
+        },
+        "completed": {
+          "default": 0,
+          "title": "Completed",
+          "type": "integer"
+        },
+        "failed": {
+          "default": 0,
+          "title": "Failed",
+          "type": "integer"
+        }
+      },
+      "title": "BatchCounts",
       "type": "object"
     },
     "ChecklistCreate": {
@@ -524,6 +745,67 @@
       "title": "CriterionScore",
       "type": "object"
     },
+    "Dataset": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "default": "test",
+          "enum": [
+            "dev",
+            "prod",
+            "test"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "group_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group Id"
+        },
+        "conversation_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "title": "Conversation Ids",
+          "type": "array"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "conversation_ids"
+      ],
+      "title": "Dataset",
+      "type": "object"
+    },
     "DevImportRequest": {
       "additionalProperties": false,
       "properties": {
@@ -548,6 +830,37 @@
           "default": null,
           "description": "Optional HTTPS organizer URL for this request only; not persisted. Omit to use server configuration.",
           "title": "Api Url"
+        },
+        "dataset_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "dev",
+                "prod",
+                "test"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Kind"
+        },
+        "dataset_name": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Name"
         }
       },
       "title": "DevImportRequest",
@@ -697,6 +1010,64 @@
             }
           ],
           "default": null
+        },
+        "dataset_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Id"
+        },
+        "attempt_number": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Attempt Number",
+          "type": "integer"
+        },
+        "retry_of": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retry Of"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completed At"
+        },
+        "ai_execution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AIExecutionMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -724,6 +1095,20 @@
           },
           "title": "Evaluations",
           "type": "array"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvaluationRun"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "counts": {
+          "$ref": "#/$defs/BatchCounts"
         }
       },
       "required": [
@@ -763,6 +1148,24 @@
           "minLength": 1,
           "title": "Prompt Version",
           "type": "string"
+        },
+        "models_used": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Models Used",
+          "type": "array"
+        },
+        "execution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AIExecutionMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -794,6 +1197,34 @@
           "minLength": 1,
           "title": "Checklist Id",
           "type": "string"
+        },
+        "dataset_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Id"
+        },
+        "idempotency_key": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Idempotency Key"
         }
       },
       "required": [
@@ -801,6 +1232,50 @@
         "checklist_id"
       ],
       "title": "EvaluationRequest",
+      "type": "object"
+    },
+    "EvaluationRun": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "dataset_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "conversation_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Conversation Ids",
+          "type": "array"
+        },
+        "checklist_snapshot": {
+          "$ref": "#/$defs/ChecklistVersion"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "dataset_id",
+        "conversation_ids",
+        "checklist_snapshot"
+      ],
+      "title": "EvaluationRun",
       "type": "object"
     },
     "EvaluationStatus": {
@@ -824,6 +1299,30 @@
           "minItems": 1,
           "title": "Conversations",
           "type": "array"
+        },
+        "dataset_kind": {
+          "default": "test",
+          "enum": [
+            "dev",
+            "prod",
+            "test"
+          ],
+          "title": "Dataset Kind",
+          "type": "string"
+        },
+        "dataset_name": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Name"
         }
       },
       "required": [
@@ -849,6 +1348,17 @@
         "existing": {
           "title": "Existing",
           "type": "integer"
+        },
+        "dataset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dataset"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -942,6 +1452,75 @@
         "text"
       ],
       "title": "MessageInput",
+      "type": "object"
+    },
+    "OfficialExportRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "team_name": {
+          "default": "cuda cuda",
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Team Name",
+          "type": "string"
+        },
+        "payload": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload"
+        }
+      },
+      "title": "OfficialExportRequest",
+      "type": "object"
+    },
+    "RetryRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "failed_evaluation_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Failed Evaluation Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "failed_evaluation_ids"
+      ],
+      "title": "RetryRequest",
+      "type": "object"
+    },
+    "RetryResult": {
+      "additionalProperties": false,
+      "properties": {
+        "batch": {
+          "$ref": "#/$defs/EvaluationBatch"
+        },
+        "retried": {
+          "title": "Retried",
+          "type": "integer"
+        },
+        "skipped": {
+          "title": "Skipped",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "batch",
+        "retried",
+        "skipped"
+      ],
+      "title": "RetryResult",
       "type": "object"
     },
     "ReviewDecision": {

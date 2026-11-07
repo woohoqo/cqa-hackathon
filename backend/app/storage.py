@@ -3,11 +3,11 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 
-from .contracts import Appeal, ChecklistVersion, Conversation, Evaluation, ReviewDecision
+from .contracts import Appeal, ChecklistVersion, Conversation, Dataset, Evaluation, EvaluationRun, ReviewDecision
 from .errors import AppError
 
 MODELS = {"conversations": Conversation, "checklists": ChecklistVersion, "evaluations": Evaluation,
-          "appeals": Appeal, "decisions": ReviewDecision}
+          "appeals": Appeal, "decisions": ReviewDecision, "datasets": Dataset, "runs": EvaluationRun}
 
 
 class Database:
@@ -55,6 +55,15 @@ class Database:
                 CREATE TABLE IF NOT EXISTS decisions (
                     id TEXT PRIMARY KEY, appeal_id TEXT NOT NULL UNIQUE REFERENCES appeals(id),
                     payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS datasets (
+                    id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS runs (
+                    id TEXT PRIMARY KEY, dataset_id TEXT NOT NULL REFERENCES datasets(id),
+                    payload TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS run_dataset ON runs(dataset_id);
+                CREATE TABLE IF NOT EXISTS run_requests (
+                    request_key TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
+                    request_payload TEXT NOT NULL);
             """)
 
     @staticmethod

@@ -454,7 +454,9 @@
       "raw_response": "{\"synthetic_example_only\": true, \"criteria\": [{\"criterion_id\": \"1\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"2\", \"value\": \"N/A\", \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"3\", \"value\": \"N/A\", \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"4\", \"value\": 15.0, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"5\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"6\", \"value\": 7.0, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"7\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"8\", \"value\": false, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}]}",
       "provider": "synthetic-example-only",
       "model": "no-model-called",
-      "prompt_version": "docs-v1"
+      "prompt_version": "docs-v1",
+      "models_used": [],
+      "execution": null
     },
     "raw_response": "{\"synthetic_example_only\": true, \"criteria\": [{\"criterion_id\": \"1\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"2\", \"value\": \"N/A\", \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"3\", \"value\": \"N/A\", \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"4\", \"value\": 15.0, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"5\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"6\", \"value\": 7.0, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"7\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"8\", \"value\": false, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}]}",
     "original_score": {
@@ -711,6 +713,11 @@
         "confidence": null
       }
     ],
-    "error": null
+    "error": null,
+    "dataset_id": null,
+    "attempt_number": 1,
+    "retry_of": null,
+    "completed_at": null,
+    "ai_execution": null
   }
 }

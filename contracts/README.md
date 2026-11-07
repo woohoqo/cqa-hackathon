@@ -15,6 +15,8 @@ API prefix: `/api/v1`. All bodies/results are JSON unless exporting CSV. Errors 
 | GET | /api/v1/conversations/{id} | — | Conversation |
 | POST | /api/v1/imports/json | ImportRequest | ImportResult |
 | POST | /api/v1/imports/dev | optional DevImportRequest (`group_id`, default DEV); URL from environment | ImportResult |
+| GET | /api/v1/datasets | limit, offset | Dataset[] |
+| GET | /api/v1/datasets/{id} | — | Dataset |
 | POST | /api/v1/checklists | ChecklistCreate | ChecklistVersion (201) |
 | GET | /api/v1/checklists | — | ChecklistVersion[] |
 | GET | /api/v1/checklists/{id} | — | ChecklistVersion |
@@ -22,6 +24,11 @@ API prefix: `/api/v1`. All bodies/results are JSON unless exporting CSV. Errors 
 | GET | /api/v1/evaluations | conversation_id?, limit, offset | Evaluation[] |
 | GET | /api/v1/evaluations/{id} | — | Evaluation |
 | GET | /api/v1/batches/{id} | — | EvaluationBatch |
+| GET | /api/v1/batches | dataset_id?, limit, offset | EvaluationRun[] |
+| GET | /api/v1/batches/{id}/attempts | — | Evaluation[] (all attempts in this run) |
+| POST | /api/v1/batches/{id}/retry | RetryRequest | RetryResult |
+| POST | /api/v1/batches/{id}/official-export/validate | OfficialExportRequest | validation report |
+| POST | /api/v1/batches/{id}/official-export | team_name | official results.json attachment |
 | POST | /api/v1/evaluations/{id}/appeals | AppealCreate | Appeal (201) |
 | GET | /api/v1/evaluations/{id}/appeals | — | Appeal[] |
 | POST | /api/v1/appeals/{id}/decisions | ReviewDecisionCreate | ReviewDecision (201) |
@@ -31,6 +38,17 @@ API prefix: `/api/v1`. All bodies/results are JSON unless exporting CSV. Errors 
 Poll batch/evaluation until `completed` or `failed`; failed evaluation includes a safe `error`.
 Each evaluation embeds its immutable `checklist_snapshot`. New checklist submissions with the same
 `key` create a new monotonically increasing version; existing versions are never edited.
+
+Imports return an immutable dataset manifest. Supply its `dataset_id` and an `idempotency_key`
+when starting a run. Each run has one checklist snapshot; `EvaluationBatch.evaluations` contains
+only the latest attempt for each selected conversation. `counts` reflects those current attempts.
+Retry submits `failed_evaluation_ids`, not just conversation IDs: only matching latest failed attempts
+are retried, so repeated submissions cannot create another attempt. Successful results remain intact.
+Changing the checklist requires a new run. `/attempts` retains full history within that run.
+Official export requires every conversation in the dataset manifest, including well-formed processing
+errors. Its preflight accepts an optional `payload` to inspect a candidate file; download always builds
+from saved results. See [official export rules](../docs/official-export.md) and generated
+`official-results.schema.json`. The existing GET export remains an internal audit archive.
 
 ## AI handoff
 
@@ -42,7 +60,8 @@ async def evaluate_dialogue(conversation: Conversation, checklist: ChecklistVers
 Output every criterion exactly once, referencing at least one original message ID per criterion, including N/A and missing actions. Values: JSON `true`/`false`
 for boolean and flag, a defined numeric scale step for scale, literal `"N/A"` only when allowed.
 `raw_response` is the exact response text, not `json.dumps(parsed_result)`. Include provider, model,
-prompt_version. For malformed provider output, raise `AIProviderError("invalid_ai_response", safe_message,
+prompt_version, actual `models_used`, and safe `execution` metadata. Metadata belongs to that attempt;
+never derive an old result's model from current environment settings. For malformed provider output, raise `AIProviderError("invalid_ai_response", safe_message,
 raw_response=original_text)`. Never put keys, service URLs or transcript content in an error message.
 The backend validates output and calculates all scores; AI must not calculate or override totals.
 If no sections are submitted, the backend uses section `general` / «Общие»; omitted criterion

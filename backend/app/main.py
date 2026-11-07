@@ -154,7 +154,8 @@ def create_app(*, database_path: str | None = None, evaluator=None, settings: Se
         try:
             payload = body.payload if body.payload is not None else build_official_export(
                 conversations, evaluations, body.team_name, dataset.kind)
-            return validate(payload, conversations, evaluations=evaluations, dataset_kind=dataset.kind)
+            return validate(payload, conversations, evaluations=evaluations, dataset_kind=dataset.kind,
+                            expected_team_name=body.team_name)
         except OfficialExportError as exc:
             return exc.report
 

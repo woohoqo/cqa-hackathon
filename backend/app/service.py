@@ -178,6 +178,7 @@ class CQAService:
                 record = Evaluation.model_validate_json(row["payload"])
                 record.status = EvaluationStatus.FAILED
                 record.updated_at = utcnow()
+                record.completed_at = record.updated_at
                 record.error = ErrorDetail(code="interrupted", message="Оценка прервана перезапуском сервера; запустите её повторно.", retryable=True)
                 self.db.save_evaluation(con, record)
 
@@ -208,7 +209,19 @@ class CQAService:
                 evaluator = evaluate_dialogue
             else:
                 evaluator = self.evaluator
-            result = await asyncio.wait_for(evaluator(conversation.model_copy(deep=True), record.checklist_snapshot.model_copy(deep=True)), timeout=self.settings.ai_timeout_seconds)
+            async def invoke():
+                try:
+                    return await evaluator(conversation.model_copy(deep=True), record.checklist_snapshot.model_copy(deep=True))
+                except asyncio.CancelledError as exc:
+                    # Capture provider accounting before wait_for converts cancellation to TimeoutError.
+                    execution = getattr(exc, "execution", None)
+                    if execution is not None:
+                        record.ai_execution = execution
+                    raw = getattr(exc, "raw_response", None)
+                    if raw is not None:
+                        record.raw_response = raw
+                    raise
+            result = await asyncio.wait_for(invoke(), timeout=self.settings.ai_timeout_seconds)
             if not isinstance(result, EvaluationDraft):
                 raise AIProviderError("invalid_ai_response", "AI-модуль вернул результат вне согласованного контракта.")
             record.ai_draft = result
@@ -224,7 +237,8 @@ class CQAService:
             record.final_criteria = [r.model_copy(deep=True) for r in result.criteria]
             record.status = EvaluationStatus.COMPLETED
         except AIProviderError as exc:
-            record.ai_execution = exc.execution
+            if exc.execution is not None:
+                record.ai_execution = exc.execution
             if exc.raw_response is not None:
                 record.raw_response = exc.raw_response
             record.status = EvaluationStatus.FAILED

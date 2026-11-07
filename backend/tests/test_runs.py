@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.app.contracts import (AIProviderError, AppealCreate, ConversationInput, EvaluationRequest,
-    EvaluationStatus, RetryRequest, ReviewDecisionCreate)
+    EvaluationStatus, RetryRequest, ReviewDecisionCreate, AIExecutionMetadata)
 from backend.app.default_checklist import official_checklist
 from backend.app.errors import AppError
 from backend.app.main import create_app
@@ -177,3 +177,40 @@ def test_run_routes_return_scoped_progress_and_attempts(tmp_path):
         current = client.get(f"/api/v1/batches/{batch['id']}").json()
         assert current["counts"]["total"] == 1
         assert len(client.get(f"/api/v1/batches/{batch['id']}/attempts").json()) == 1
+
+
+def test_local_validation_failure_preserves_provider_execution_and_interruption_time(tmp_path):
+    async def evaluator(conversation, checklist):
+        value = draft(conversation, checklist)
+        value.execution = AIExecutionMetadata(run_id="synthetic-execution", models_used=["synthetic-model"], duration_ms=1)
+        value.criteria = value.criteria[:-1]
+        return value
+    service, checklist = make_service(tmp_path, evaluator)
+    batch = enqueue(service, checklist, imported(service, "invalid", "interrupted"))
+    failed = process_next(service)
+    assert failed.status == EvaluationStatus.FAILED
+    assert failed.ai_execution == failed.ai_draft.execution
+    assert failed.raw_response == failed.ai_draft.raw_response
+    running = service.claim_next()
+    service.recover_interrupted()
+    interrupted = service.db.read("evaluations", running.id)
+    assert interrupted.status == EvaluationStatus.FAILED
+    assert interrupted.completed_at == interrupted.updated_at
+
+
+def test_outer_timeout_preserves_cancelled_provider_accounting(tmp_path):
+    metadata = AIExecutionMetadata(run_id="synthetic-cancelled", duration_ms=10)
+    async def evaluator(conversation, checklist):
+        try:
+            await asyncio.sleep(10)
+        except asyncio.CancelledError as exc:
+            exc.execution = metadata
+            exc.raw_response = "synthetic exact prior response"
+            raise
+    service, checklist = make_service(tmp_path, evaluator)
+    service.settings = Settings(service.db.path, [], 1, 0.02, "")
+    enqueue(service, checklist, imported(service, "timeout"))
+    failed = process_next(service)
+    assert failed.status == EvaluationStatus.FAILED and failed.error.code == "ai_timeout"
+    assert failed.ai_execution == metadata
+    assert failed.raw_response == "synthetic exact prior response"

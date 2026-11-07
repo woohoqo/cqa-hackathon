@@ -5,7 +5,7 @@ Source of truth: `backend/app/contracts.py`. `models.schema.json` is generated f
 API prefix: `/api/v1`. All bodies/results are JSON unless exporting CSV. Errors use
 `{"error":{"code":"...","message":"...","retryable":false}}`; invalid requests return HTTP 422.
 
-## Agreed endpoints (backend implementation follows foundation)
+## Implemented endpoints
 
 | Method | Path | Request | Response |
 |---|---|---|---|
@@ -14,7 +14,7 @@ API prefix: `/api/v1`. All bodies/results are JSON unless exporting CSV. Errors 
 | GET | /api/v1/conversations | limit, offset | Conversation[] |
 | GET | /api/v1/conversations/{id} | — | Conversation |
 | POST | /api/v1/imports/json | ImportRequest | ImportResult |
-| POST | /api/v1/imports/dev | no body; URL from environment | ImportResult |
+| POST | /api/v1/imports/dev | optional DevImportRequest (`group_id`, default DEV); URL from environment | ImportResult |
 | POST | /api/v1/checklists | ChecklistCreate | ChecklistVersion (201) |
 | GET | /api/v1/checklists | — | ChecklistVersion[] |
 | GET | /api/v1/checklists/{id} | — | ChecklistVersion |
@@ -39,12 +39,17 @@ from backend.app.contracts import Conversation, ChecklistVersion, EvaluationDraf
 async def evaluate_dialogue(conversation: Conversation, checklist: ChecklistVersion) -> EvaluationDraft: ...
 ```
 
-Output every criterion exactly once, referencing original message IDs. Values: JSON `true`/`false`
+Output every criterion exactly once, referencing at least one original message ID per criterion, including N/A and missing actions. Values: JSON `true`/`false`
 for boolean and flag, a defined numeric scale step for scale, literal `"N/A"` only when allowed.
 `raw_response` is the exact response text, not `json.dumps(parsed_result)`. Include provider, model,
 prompt_version. For malformed provider output, raise `AIProviderError("invalid_ai_response", safe_message,
 raw_response=original_text)`. Never put keys, service URLs or transcript content in an error message.
 The backend validates output and calculates all scores; AI must not calculate or override totals.
+If no sections are submitted, the backend uses section `general` / «Общие»; omitted criterion
+section_id also defaults to `general`. List endpoints accept `limit` (1–1000) and `offset`.
+JSON export contains `schema_version`, `evaluations`, `appeals`, `decisions`; CSV is a summary of totals.
+Organizer imports preserve `channel`, `language`, `audio_url`, `dataset_group_id` in conversation metadata.
+See `official-requirements.md` for rules supplied in the two PDFs.
 
 ## Scoring and appeals
 

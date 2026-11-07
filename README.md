@@ -14,8 +14,10 @@ Copy-Item .env.example .env
 
 On macOS/Linux use `.venv/bin/python` and `cp .env.example .env`.
 Health: http://127.0.0.1:8000/health. Interactive API: http://127.0.0.1:8000/docs.
-At the foundation checkpoint only health is implemented. Endpoint agreement is in `contracts/README.md`;
-generated OpenAPI reflects actually implemented routes, not future capabilities.
+Implemented routes and examples are in `contracts/README.md`; generated OpenAPI matches the application.
+The official eight-criterion checklist is created on first startup. New versions never replace old ones.
+Use one Uvicorn process (no `--workers`): the durable SQLite queue runs `AI_CONCURRENCY` async consumers.
+On restart queued jobs resume; interrupted running jobs fail explicitly and can be resubmitted.
 
 ## Shared contracts and team handoff
 
@@ -30,10 +32,20 @@ AI needs a real Gemini API key and model ID in local `.env`. The foundation deli
 `provider_not_configured` until the AI implementation is integrated. No mock provider runs in production.
 `DEV_API_URL` holds the complete signed API URL locally, never in code or Git.
 
-Student Guide, Chat Quality Checklist and prior project files were not present at initialization.
-Exact official checklist wording, scale steps, N/A conditions, DEV API envelope/authentication,
-and export requirements remain pending until these documents are supplied. User-provided scoring rules
-are authoritative for the generic calculator; a synthetic fixture is not an official checklist.
+Student Guide v3 and Chat Quality Checklist are reflected in `contracts/official-requirements.md`
+and `backend/app/default_checklist.py`. `POST /api/v1/imports/dev` fetches the organizer envelope;
+an optional `{"group_id":"CONTROL"}` body selects a future group without exposing the signed URL.
+JSON import accepts `{"conversations":[...]}`; new transcripts use `POST /api/v1/conversations`.
+Reimporting the same source/external_id/content reuses IDs; changed content returns 409 without overwriting.
+
+Start a batch with `POST /api/v1/evaluations`, then poll its batch/evaluation IDs until completed or failed.
+Results include original and final scores, exact AI response and checklist snapshot. Accepted appeals
+modify only final criteria/scores. JSON exports include reviewer audit history; CSV exports summary scores.
+Scores are calculated with Decimal, normalizing N/A and rounding only the total. Gross errors remain flags.
+
+Before hackathon submission the guide requires a public repository; this development repository remains
+private as requested. Record the real Gemini model and approximate evaluation cost after AI integration.
+The organizer reference scores are not supplied, so agreement with them cannot yet be measured.
 
 ## Development
 

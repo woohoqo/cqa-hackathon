@@ -75,7 +75,7 @@ class Section(Contract):
 
 class Criterion(Contract):
     id: Identifier
-    section_id: Identifier
+    section_id: Identifier = "general"
     title: str = Field(min_length=1)
     description: str = ""
     weight: float = Field(ge=0)
@@ -103,11 +103,13 @@ class ChecklistCreate(Contract):
     key: Identifier
     name: str = Field(min_length=1)
     description: str = ""
-    sections: list[Section] = Field(min_length=1)
+    sections: list[Section] = Field(default_factory=lambda: [Section(id="general", title="Общие")])
     criteria: list[Criterion] = Field(min_length=1)
 
     @model_validator(mode="after")
     def valid_references(self):
+        if not self.sections:
+            self.sections = [Section(id="general", title="Общие")]
         sections = [s.id for s in self.sections]
         criteria = [c.id for c in self.criteria]
         if len(set(sections)) != len(sections) or len(set(criteria)) != len(criteria):
@@ -126,8 +128,8 @@ class ChecklistVersion(ChecklistCreate):
 class CriterionResult(Contract):
     criterion_id: Identifier
     value: AnswerValue
-    reasoning: str = Field(min_length=1)
-    evidence_message_ids: list[Identifier] = Field(default_factory=list)
+    reasoning: str = Field(min_length=1, pattern=r"\S")
+    evidence_message_ids: list[Identifier] = Field(min_length=1)
     confidence: float | None = Field(default=None, ge=0, le=1)
 
 
@@ -243,6 +245,10 @@ class ReviewDecision(ReviewDecisionCreate):
 
 class ImportRequest(Contract):
     conversations: list[ConversationInput] = Field(min_length=1, max_length=1000)
+
+
+class DevImportRequest(Contract):
+    group_id: Annotated[str, Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")] = "DEV"
 
 
 class ImportResult(Contract):

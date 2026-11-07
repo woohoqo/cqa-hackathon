@@ -39,7 +39,7 @@ def checklist(*criteria, sections=None):
 def result(identifier="c1", value=True, evidence=None):
     return CriterionResult(
         criterion_id=identifier, value=value, reasoning="Synthetic test explanation",
-        evidence_message_ids=evidence or [],
+        evidence_message_ids=evidence if evidence is not None else ["m1"],
     )
 
 

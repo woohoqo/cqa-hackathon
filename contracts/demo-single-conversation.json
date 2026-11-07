@@ -1,0 +1,47 @@
+{
+  "dataset_kind": "test",
+  "dataset_name": "Synthetic single-dialogue demo",
+  "conversations": [
+    {
+      "external_id": "demo-ru-new-20261107",
+      "source": "integration-demo",
+      "messages": [
+        {
+          "id": "demo-ru-1",
+          "role": "client",
+          "text": "Здравствуйте! В какое время работает поддержка?",
+          "timestamp": "00:00"
+        },
+        {
+          "id": "demo-ru-2",
+          "role": "system",
+          "text": "Справочная информация для оператора: поддержка работает ежедневно с 09:00 до 18:00 по времени Астаны.",
+          "timestamp": "00:01"
+        },
+        {
+          "id": "demo-ru-3",
+          "role": "operator",
+          "text": "Здравствуйте! Меня зовут Дана. Поддержка работает ежедневно с 09:00 до 18:00 по времени Астаны.",
+          "timestamp": "00:08"
+        },
+        {
+          "id": "demo-ru-4",
+          "role": "client",
+          "text": "Спасибо, это всё.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "demo-ru-5",
+          "role": "operator",
+          "text": "Пожалуйста! Если появятся вопросы, обращайтесь. До свидания!",
+          "timestamp": "00:24"
+        }
+      ],
+      "metadata": {
+        "language": "RU",
+        "channel": "agent chat",
+        "synthetic": true
+      }
+    }
+  ]
+}

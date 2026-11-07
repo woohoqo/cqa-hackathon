@@ -1,4 +1,5 @@
 import type { Appeal, AppealCreate, ChecklistCreate, ChecklistVersion, Conversation, ConversationInput, Evaluation, EvaluationBatch, ImportResult, ReviewDecision, ReviewDecisionCreate } from './types';
+import { fetchEvaluationExport, type ExportFormat } from './downloads';
 
 const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 export class ApiError extends Error {
@@ -32,6 +33,7 @@ async function listAll<T>(path: string, signal?: AbortSignal): Promise<T[]> {
   }
 }
 export const api = {
+  exportEvaluations: (format: ExportFormat) => fetchEvaluationExport(base, format),
   listConversations: (signal?: AbortSignal) => listAll<Conversation>('/conversations', signal),
   getConversation: (key: string) => request<Conversation>(`/conversations/${id(key)}`),
   listChecklists: (signal?: AbortSignal) => listAll<ChecklistVersion>('/checklists', signal),

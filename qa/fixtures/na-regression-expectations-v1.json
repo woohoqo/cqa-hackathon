@@ -1,0 +1,146 @@
+{
+  "fixture_version": "na-regression-v1",
+  "synthetic": true,
+  "expectation_basis": "Rubric-derived synthetic assertions, not organizer annotations or holdout accuracy. Freeze before comparing prompt versions.",
+  "checklist": "Unmodified official freedom-cqa v1 snapshot.",
+  "cases": [
+    {
+      "conversation_id": "qa-final-ru-browser",
+      "language": "RU",
+      "scenario": "clear_from_start",
+      "primary": {
+        "criterion_id": "2",
+        "value": "N/A",
+        "rationale": "The initial request already identifies the specific information needed; clarification is unnecessary."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": "N/A",
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": false
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": false,
+      "source_fixture": "qa/fixtures/live-semantic-regressions.json (first)"
+    },
+    {
+      "conversation_id": "demo-kz-chat-20261107",
+      "language": "KZ",
+      "scenario": "clear_from_start",
+      "primary": {
+        "criterion_id": "2",
+        "value": "N/A",
+        "rationale": "The initial request already identifies the specific information needed; clarification is unnecessary."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": "N/A",
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": false
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": false,
+      "source_fixture": "contracts/demo-conversations.json (exact existing messages)"
+    },
+    {
+      "conversation_id": "demo-en-call-20261107",
+      "language": "EN",
+      "scenario": "clear_from_start",
+      "primary": {
+        "criterion_id": "2",
+        "value": "N/A",
+        "rationale": "The initial request already identifies the specific information needed; clarification is unnecessary."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": "N/A",
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": true
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": true,
+      "source_fixture": "contracts/demo-conversations.json (exact existing messages)"
+    },
+    {
+      "conversation_id": "synthetic-na-ru-clarification-v1",
+      "language": "RU",
+      "scenario": "clarification_needed",
+      "primary": {
+        "criterion_id": "2",
+        "value": true,
+        "rationale": "Client omits support versus office, operator asks before answering, client resolves the ambiguity."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": true,
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": false
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": false,
+      "source_fixture": "authored paired clarification control"
+    },
+    {
+      "conversation_id": "synthetic-na-kz-clarification-v1",
+      "language": "KZ",
+      "scenario": "clarification_needed",
+      "primary": {
+        "criterion_id": "2",
+        "value": true,
+        "rationale": "Client omits support versus office, operator asks before answering, client resolves the ambiguity."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": true,
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": false
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": false,
+      "source_fixture": "authored paired clarification control"
+    },
+    {
+      "conversation_id": "synthetic-na-en-clarification-v1",
+      "language": "EN",
+      "scenario": "clarification_needed",
+      "primary": {
+        "criterion_id": "2",
+        "value": true,
+        "rationale": "Client omits support versus office, operator asks before answering, client resolves the ambiguity."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": true,
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": false
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": false,
+      "source_fixture": "authored paired clarification control"
+    }
+  ]
+}

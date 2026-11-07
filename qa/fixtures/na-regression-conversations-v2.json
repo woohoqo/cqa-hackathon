@@ -1,0 +1,409 @@
+{
+  "conversations": [
+    {
+      "source": "synthetic-na-regression-v1",
+      "external_id": "qa-final-ru-browser",
+      "metadata": {
+        "synthetic": true,
+        "language": "RU",
+        "channel": "agent chat"
+      },
+      "messages": [
+        {
+          "id": "qa-m1",
+          "role": "system",
+          "text": "Справочная инструкция: отчёт скачивается в разделе Документы → Отчёт → выбрать период → Скачать.",
+          "timestamp": "00:00"
+        },
+        {
+          "id": "qa-m2",
+          "role": "client",
+          "text": "Здравствуйте! Как скачать отчёт за октябрь? Нужна только инструкция, мой счёт проверять не надо.",
+          "timestamp": "00:01"
+        },
+        {
+          "id": "qa-m3",
+          "role": "operator",
+          "text": "Здравствуйте! Меня зовут Анна. Откройте Документы, затем Отчёт. Выберите период с 1 по 31 октября и нажмите Скачать.",
+          "timestamp": "00:05"
+        },
+        {
+          "id": "qa-m4",
+          "role": "client",
+          "text": "Получилось, спасибо!",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "qa-m5",
+          "role": "operator",
+          "text": "Отлично, отчёт скачан. Если появятся вопросы, обращайтесь. До свидания!",
+          "timestamp": "00:12"
+        }
+      ]
+    },
+    {
+      "external_id": "demo-kz-chat-20261107",
+      "source": "synthetic-na-regression-v1",
+      "messages": [
+        {
+          "id": "kz1",
+          "role": "client",
+          "text": "Сәлеметсіз бе! Қолдау қызметі нешеге дейін жұмыс істейді?",
+          "timestamp": "00:00"
+        },
+        {
+          "id": "kz2",
+          "role": "system",
+          "text": "Қолдау қызметі күн сайын Астана уақытымен 09:00-ден 18:00-ге дейін жұмыс істейді.",
+          "timestamp": "00:01"
+        },
+        {
+          "id": "kz3",
+          "role": "operator",
+          "text": "Сәлеметсіз бе! Менің атым Дана. Күткеніңіз үшін кешірім сұраймын. Қолдау қызметі күн сайын Астана уақытымен 09:00-ден 18:00-ге дейін жұмыс істейді.",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "kz4",
+          "role": "client",
+          "text": "Рақмет! Басқа сұрағым жоқ.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "kz5",
+          "role": "operator",
+          "text": "Сұрақтарыңыз болса, хабарласыңыз. Сау болыңыз!",
+          "timestamp": "00:25"
+        }
+      ],
+      "metadata": {
+        "language": "KZ",
+        "channel": "agent chat",
+        "synthetic": true
+      }
+    },
+    {
+      "external_id": "demo-en-call-20261107",
+      "source": "synthetic-na-regression-v1",
+      "messages": [
+        {
+          "id": "en1",
+          "role": "client",
+          "text": "Hello, what are your support opening hours?",
+          "timestamp": "00:00"
+        },
+        {
+          "id": "en2",
+          "role": "system",
+          "text": "Support is open every day, 09:00 to 18:00 Astana time.",
+          "timestamp": "00:01"
+        },
+        {
+          "id": "en3",
+          "role": "operator",
+          "text": "Hello, I am Dana. I apologize for the wait. Support is open every day, 09:00 to 18:00 Astana time. Also, pay me privately and I will handle your investments outside the company.",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "en4",
+          "role": "client",
+          "text": "No, I only needed the opening hours. Goodbye.",
+          "timestamp": "00:25"
+        },
+        {
+          "id": "en5",
+          "role": "operator",
+          "text": "If you have any more questions, contact support. Goodbye.",
+          "timestamp": "00:30"
+        }
+      ],
+      "metadata": {
+        "language": "EN",
+        "channel": "voice call",
+        "synthetic": true
+      }
+    },
+    {
+      "external_id": "synthetic-na-ru-clarification-v1",
+      "source": "synthetic-na-regression-v1",
+      "metadata": {
+        "synthetic": true,
+        "language": "RU",
+        "channel": "agent chat"
+      },
+      "messages": [
+        {
+          "id": "na-ru-1",
+          "role": "system",
+          "text": "Справочная информация: поддержка работает ежедневно с 09:00 до 18:00 по времени Астаны. Офис работает по будням с 10:00 до 17:00. Уточните, о какой службе спрашивает клиент.",
+          "timestamp": "00:05"
+        },
+        {
+          "id": "na-ru-2",
+          "role": "client",
+          "text": "Здравствуйте! До скольки вы работаете?",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "na-ru-3",
+          "role": "operator",
+          "text": "Здравствуйте! Меня зовут Дана. Уточните, пожалуйста: вас интересует время работы поддержки или офиса?",
+          "timestamp": "00:15"
+        },
+        {
+          "id": "na-ru-4",
+          "role": "client",
+          "text": "Меня интересует поддержка.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "na-ru-5",
+          "role": "operator",
+          "text": "Поддержка работает ежедневно с 09:00 до 18:00 по времени Астаны.",
+          "timestamp": "00:25"
+        },
+        {
+          "id": "na-ru-6",
+          "role": "client",
+          "text": "Понятно, спасибо, это всё.",
+          "timestamp": "00:30"
+        },
+        {
+          "id": "na-ru-7",
+          "role": "operator",
+          "text": "Итак, поддержка открыта до 18:00 каждый день. Если возникнут другие вопросы, обращайтесь. До свидания!",
+          "timestamp": "00:35"
+        }
+      ]
+    },
+    {
+      "external_id": "synthetic-na-kz-clarification-v1",
+      "source": "synthetic-na-regression-v1",
+      "metadata": {
+        "synthetic": true,
+        "language": "KZ",
+        "channel": "agent chat"
+      },
+      "messages": [
+        {
+          "id": "na-kz-1",
+          "role": "system",
+          "text": "Анықтама: қолдау қызметі күн сайын Астана уақытымен 09:00-ден 18:00-ге дейін жұмыс істейді. Кеңсе жұмыс күндері 10:00-ден 17:00-ге дейін ашық. Клиенттің қай қызмет туралы сұрағанын нақтылаңыз.",
+          "timestamp": "00:05"
+        },
+        {
+          "id": "na-kz-2",
+          "role": "client",
+          "text": "Сәлеметсіз бе! Нешеге дейін жұмыс істейсіздер?",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "na-kz-3",
+          "role": "operator",
+          "text": "Сәлеметсіз бе! Менің атым Дана. Нақтылап жіберіңізші: қолдау қызметінің жұмыс уақытын сұрап тұрсыз ба, әлде кеңсенің жұмыс уақытын ба?",
+          "timestamp": "00:15"
+        },
+        {
+          "id": "na-kz-4",
+          "role": "client",
+          "text": "Маған қолдау қызметінің жұмыс уақыты керек.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "na-kz-5",
+          "role": "operator",
+          "text": "Қолдау қызметі күн сайын Астана уақытымен 09:00-ден 18:00-ге дейін жұмыс істейді.",
+          "timestamp": "00:25"
+        },
+        {
+          "id": "na-kz-6",
+          "role": "client",
+          "text": "Түсінікті, рақмет. Басқа сұрағым жоқ.",
+          "timestamp": "00:30"
+        },
+        {
+          "id": "na-kz-7",
+          "role": "operator",
+          "text": "Сонымен, қолдау қызметі күн сайын 18:00-ге дейін ашық. Басқа сұрақтарыңыз болса, хабарласыңыз. Сау болыңыз!",
+          "timestamp": "00:35"
+        }
+      ]
+    },
+    {
+      "external_id": "synthetic-na-en-clarification-v1",
+      "source": "synthetic-na-regression-v1",
+      "metadata": {
+        "synthetic": true,
+        "language": "EN",
+        "channel": "voice call"
+      },
+      "messages": [
+        {
+          "id": "na-en-1",
+          "role": "system",
+          "text": "Reference: customer support is open daily from 09:00 to 18:00 Astana time. The office is open on weekdays from 10:00 to 17:00. Clarify which service the client means.",
+          "timestamp": "00:05"
+        },
+        {
+          "id": "na-en-2",
+          "role": "client",
+          "text": "Hello! Until what time are you open?",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "na-en-3",
+          "role": "operator",
+          "text": "Hello! My name is Dana. Do you mean the opening hours of customer support or the office?",
+          "timestamp": "00:15"
+        },
+        {
+          "id": "na-en-4",
+          "role": "client",
+          "text": "I mean customer support.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "na-en-5",
+          "role": "operator",
+          "text": "Customer support is open every day from 09:00 to 18:00 Astana time.",
+          "timestamp": "00:25"
+        },
+        {
+          "id": "na-en-6",
+          "role": "client",
+          "text": "Understood, thank you. That is all.",
+          "timestamp": "00:30"
+        },
+        {
+          "id": "na-en-7",
+          "role": "operator",
+          "text": "So support is open until 18:00 every day. If you have more questions, please contact us. Goodbye!",
+          "timestamp": "00:35"
+        }
+      ]
+    },
+    {
+      "external_id": "synthetic-na-ru-missing-ignored-v2",
+      "source": "synthetic-na-regression-v2",
+      "metadata": {
+        "synthetic": true,
+        "language": "RU",
+        "channel": "agent chat"
+      },
+      "messages": [
+        {
+          "id": "na-negative-ru-1",
+          "role": "system",
+          "text": "Справочная информация: поддержка работает ежедневно с 09:00 до 18:00 по времени Астаны. Офис работает по будням с 10:00 до 17:00. Уточните, о какой службе спрашивает клиент.",
+          "timestamp": "00:05"
+        },
+        {
+          "id": "na-negative-ru-2",
+          "role": "client",
+          "text": "Здравствуйте! До скольки вы работаете?",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "na-negative-ru-3",
+          "role": "operator",
+          "text": "Здравствуйте! Меня зовут Дана. Поддержка работает ежедневно до 18:00 по времени Астаны.",
+          "timestamp": "00:15"
+        },
+        {
+          "id": "na-negative-ru-4",
+          "role": "client",
+          "text": "Я спрашивал про офис, а не про поддержку.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "na-negative-ru-5",
+          "role": "operator",
+          "text": "Поддержка работает до 18:00. Если появятся вопросы, обращайтесь. До свидания!",
+          "timestamp": "00:25"
+        }
+      ]
+    },
+    {
+      "external_id": "synthetic-na-kz-missing-ignored-v2",
+      "source": "synthetic-na-regression-v2",
+      "metadata": {
+        "synthetic": true,
+        "language": "KZ",
+        "channel": "agent chat"
+      },
+      "messages": [
+        {
+          "id": "na-negative-kz-1",
+          "role": "system",
+          "text": "Анықтама: қолдау қызметі күн сайын Астана уақытымен 09:00-ден 18:00-ге дейін жұмыс істейді. Кеңсе жұмыс күндері 10:00-ден 17:00-ге дейін ашық. Клиенттің қай қызмет туралы сұрағанын нақтылаңыз.",
+          "timestamp": "00:05"
+        },
+        {
+          "id": "na-negative-kz-2",
+          "role": "client",
+          "text": "Сәлеметсіз бе! Нешеге дейін жұмыс істейсіздер?",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "na-negative-kz-3",
+          "role": "operator",
+          "text": "Сәлеметсіз бе! Менің атым Дана. Қолдау қызметі күн сайын Астана уақытымен 18:00-ге дейін жұмыс істейді.",
+          "timestamp": "00:15"
+        },
+        {
+          "id": "na-negative-kz-4",
+          "role": "client",
+          "text": "Мен қолдау қызметін емес, кеңсені сұрадым.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "na-negative-kz-5",
+          "role": "operator",
+          "text": "Қолдау қызметі 18:00-ге дейін жұмыс істейді. Сұрақтарыңыз болса, хабарласыңыз. Сау болыңыз!",
+          "timestamp": "00:25"
+        }
+      ]
+    },
+    {
+      "external_id": "synthetic-na-en-missing-ignored-v2",
+      "source": "synthetic-na-regression-v2",
+      "metadata": {
+        "synthetic": true,
+        "language": "EN",
+        "channel": "voice call"
+      },
+      "messages": [
+        {
+          "id": "na-negative-en-1",
+          "role": "system",
+          "text": "Reference: customer support is open daily from 09:00 to 18:00 Astana time. The office is open on weekdays from 10:00 to 17:00. Clarify which service the client means.",
+          "timestamp": "00:05"
+        },
+        {
+          "id": "na-negative-en-2",
+          "role": "client",
+          "text": "Hello! Until what time are you open?",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "na-negative-en-3",
+          "role": "operator",
+          "text": "Hello! My name is Dana. Customer support is open daily until 18:00 Astana time.",
+          "timestamp": "00:15"
+        },
+        {
+          "id": "na-negative-en-4",
+          "role": "client",
+          "text": "I was asking about the office, not customer support.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "na-negative-en-5",
+          "role": "operator",
+          "text": "Customer support is open until 18:00. If you have questions, contact us. Goodbye!",
+          "timestamp": "00:25"
+        }
+      ]
+    }
+  ]
+}

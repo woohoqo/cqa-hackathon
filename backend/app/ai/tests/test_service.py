@@ -74,6 +74,7 @@ def test_noncontiguous_region_gets_targeted_retry_and_preserves_raw(monkeypatch,
         na_condition_met="No applicable request: synthetic fixture.",
         checked_message_ids=["client", "operator"],
     )
+    invalid["criteria"]["new/unknown-Ж"]["applicability"]["na_condition_applies"] = True
     invalid_raw = json.dumps(invalid, ensure_ascii=False)
     repaired = json.loads(invalid_raw)
     repaired["criteria"]["new/unknown-Ж"]["checked_message_ids"] = ["client", "system", "operator"]
@@ -106,6 +107,7 @@ def test_na_explanation_gets_applicability_retry_without_rewriting_raw(monkeypat
     data["criteria"]["new/unknown-Ж"]["na_condition_met"] = "No applicable request"
     invalid_raw = json.dumps(data, ensure_ascii=False)
     data["criteria"]["new/unknown-Ж"].update(value="N/A", evidence_kind="not_applicable")
+    data["criteria"]["new/unknown-Ж"]["applicability"]["na_condition_applies"] = True
     corrected_raw = json.dumps(data, ensure_ascii=False, indent=2)
     instructions = []
 

@@ -25,7 +25,14 @@ class ExpectedAction(_Strict):
     description: Text
 
 
+class Applicability(_Strict):
+    na_condition_applies: bool
+    reasoning: Text
+    evidence_message_ids: list[str] = Field(min_length=1)
+
+
 class _Decision(_Strict):
+    applicability: Applicability | None
     value: bool | float | Literal["N/A"]
     reasoning: Text
     evidence_message_ids: list[str] = Field(min_length=1)
@@ -84,7 +91,17 @@ def validate_response(raw: str, conversation: Conversation, checklist: Checklist
             if decision.na_condition_met is not None or decision.evidence_kind == "not_applicable":
                 raise InvalidResponse("unexpected_na_explanation")
 
-        for refs in (decision.evidence_message_ids, decision.checked_message_ids):
+        applicability = decision.applicability
+        if criterion.allow_na:
+            if applicability is None:
+                raise InvalidResponse("missing_applicability")
+            if applicability.na_condition_applies != (value == "N/A"):
+                raise InvalidResponse("applicability_value_mismatch")
+        elif applicability is not None:
+            raise InvalidResponse("unexpected_applicability")
+
+        for refs in (decision.evidence_message_ids, decision.checked_message_ids,
+                     applicability.evidence_message_ids if applicability else []):
             if len(refs) != len(set(refs)) or any(ref not in order for ref in refs):
                 raise InvalidResponse("invalid_evidence_reference")
         checked = decision.checked_message_ids
@@ -95,6 +112,9 @@ def validate_response(raw: str, conversation: Conversation, checklist: Checklist
 
         evidence = list(decision.evidence_message_ids)
         reasoning = decision.reasoning
+        if applicability is not None:
+            reasoning += f" Применимость: {applicability.reasoning}"
+            evidence.extend(applicability.evidence_message_ids)
         action = decision.expected_action
         if decision.evidence_kind == "missing_action":
             if not checked or action is None or action.message_id not in checked:

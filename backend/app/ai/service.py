@@ -45,11 +45,16 @@ def _feedback(code: str) -> str:
                      "including client, bot and system messages, in original order. "
                      "Do not copy sparse evidence references into this field. "
                      "For observed/N/A decisions use [] if no checked region is needed.")
-    elif code == "unexpected_na_explanation":
+    elif code in {"unexpected_na_explanation", "applicability_value_mismatch",
+                  "missing_applicability", "unexpected_applicability"}:
         feedback += (" Re-check applicability first: when an allowed N/A condition is met, "
                      "set value to the literal string N/A and evidence_kind to not_applicable. "
                      "Never use true to represent that no action was needed. "
-                     "For every boolean/numeric answer na_condition_met must be null.")
+                     "For allow_na=true provide applicability with the factual condition decision, "
+                     "brief reasoning and original evidence IDs before grading: na_condition_applies=true "
+                     "requires N/A, false requires a performance answer. Do not revise the condition "
+                     "decision merely to justify a previously chosen grade. For allow_na=false "
+                     "applicability must be null. For every boolean/numeric answer na_condition_met must be null.")
     return feedback
 
 

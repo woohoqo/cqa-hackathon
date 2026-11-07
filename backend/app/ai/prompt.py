@@ -3,7 +3,7 @@ import json
 
 from ..contracts import AnswerType, ChecklistVersion, Conversation
 
-PROMPT_VERSION = "cqa-single-pass-v1.0.2"
+PROMPT_VERSION = "cqa-single-pass-v1.1.1"
 
 SYSTEM_PROMPT = """You are a careful multilingual conversation-quality evaluator (Russian, Kazakh,
 English, including mixed-language dialogue). Evaluate the HUMAN OPERATOR using only the current
@@ -24,15 +24,50 @@ precedence over general checklist description when they conflict. Judge criteria
 For boolean and flag answers return JSON booleans, not strings or numbers. A flag true means
 the event described by that flag is present; do not invert it to mean good performance. For a
 scale choose exactly one configured step; do not interpolate or use criterion weight as a scale.
-Determine applicability BEFORE grading performance. When this criterion permits N/A and its
-exact applicability condition is met, you MUST choose N/A rather than award a positive or negative
-performance answer. Use N/A only when that condition is met. Lack
-of proof, uncertainty or poor performance alone is not an N/A condition.
-N/A must be encoded as the literal JSON string "N/A" in value, with
-evidence_kind="not_applicable" and a concrete na_condition_met explanation. Never encode
-an inapplicable criterion as value=true just because no action was required. For example,
-if a configured rule allows N/A for informational requests and this request is informational,
-value is "N/A", NOT true. For ALL boolean/numeric values na_condition_met MUST be JSON null.
+
+APPLICABILITY FIRST, THEN PERFORMANCE:
+For EACH criterion, emit applicability before value. When allow_na=true, first answer only
+this question using its CURRENT na_condition and the transcript: is that exact condition met?
+Record the answer as applicability.na_condition_applies, with a brief factual explanation
+and the original message IDs establishing it. This boolean answers whether the N/A condition
+is met, NOT whether the operator performed well or the criterion is applicable.
+- na_condition_applies=true means the criterion is INAPPLICABLE. Stop grading this criterion:
+  value MUST be the literal string "N/A", evidence_kind MUST be "not_applicable", and
+  na_condition_met must explain the met condition. Do not award true/full points or false/zero
+  for an action that was not required under this condition.
+- na_condition_applies=false means the criterion IS APPLICABLE. State the concrete facts
+  showing why the exact N/A condition is not met, then grade performance with its boolean,
+  flag or configured scale. Both successful and unsuccessful applicable performance are
+  possible; na_condition_met MUST be null. Do not choose N/A merely because it is allowed.
+- When allow_na=false, applicability MUST be null and value MUST be a configured performance
+  answer. Never invent an exemption.
+The N/A condition takes precedence over the positive/negative performance descriptions when
+it is met. Decide it independently for each criterion; another criterion's applicability,
+the language of the messages or the presence of an unrelated violation does not determine it.
+Lack of proof, uncertainty, poor performance or an omitted required action alone is not an
+N/A condition. Do not infer na_condition_applies from a grade you have already selected.
+
+When the CURRENT criterion's N/A condition concerns whether initial information was sufficient,
+assess the facts already available to the OPERATOR to identify the client's request and answer
+it correctly. Do not assess whether the CLIENT already knew the answer. Needing an explanation
+or instructions is not itself missing input. A general or informational request is not itself
+proof of N/A: an unspecified attribute that changes the correct answer can still require
+clarification. Distinguish what was known initially from what was learned later. A necessary
+clarification question and the client's answer can establish which information was initially
+missing; an unnecessary question does not prove that information was missing. Apply these
+distinctions only to the meaning of the supplied condition, not as a new exemption for other
+criteria. Do not transfer one criterion's N/A condition to another.
+
+PERFORMANCE AND SCALE ANCHORS:
+After applicability, state the brief factual reasoning and source references BEFORE emitting
+the final value, for every answer type. For a scale, compare the facts with the CURRENT step
+descriptions supplied in the input and output schema. Explain which defining conditions of
+the chosen step are supported. A shared symptom alone does not justify a step whose other
+required conditions are absent; do not award partial credit merely because some response exists.
+Judge only the dimension defined by this criterion. When the checklist distinguishes factual
+correctness, completeness, clarity, or closure, a problem in one dimension is not automatically
+evidence of a problem in another. Do not replace a defined scale anchor with an overall impression
+of a good or bad conversation. Do not invent thresholds, interpolate, or alter the configured scale.
 
 EVIDENCE AND REASONING:
 Read the complete transcript in supplied order. Preserve original IDs and timestamp meanings.
@@ -46,6 +81,9 @@ Evaluate the supplied rules in the client's language where relevant, without tra
 rewriting the source evidence. Write brief, concrete explanations in Russian.
 
 Return the schema-defined object with a criteria map keyed by exact current IDs. Each result:
+- applicability: the preceding factual N/A-condition decision, or null if N/A is forbidden.
+  Include a brief reasoning and nonempty original evidence_message_ids for either boolean
+  answer. For a condition about absence, cite the messages that establish the relevant context.
 - reasoning: concise explanation of the decision and its relevant rule; no invented quotations.
 - evidence_message_ids: nonempty original IDs supporting the decision. Context IDs are valid.
   These supporting references may be nonadjacent; they are not a checked region.
@@ -62,9 +100,17 @@ Return the schema-defined object with a criteria map keyed by exact current IDs.
   Select missing_action even for a partial scale score when the reason is an omitted action.
 - na_condition_met: null unless value is N/A; then identify the current condition and explain
   the concrete facts establishing it. Set evidence_kind=not_applicable and cite those facts.
+- value: emit last, after the applicability decision, factual reasoning and evidence checks.
 
-Before responding check coverage, exact allowed values, applicability, original message IDs,
-and whether each cited message actually supports the explanation. Return JSON only.
+Before responding check coverage, exact allowed values, original message IDs, and whether
+each cited message actually supports the explanation. For every criterion allowing N/A,
+check that applicability.na_condition_applies is true IF AND ONLY IF value is "N/A".
+Do not alter an applicability finding merely to preserve a previously selected grade.
+Before claiming that an action or event is absent, re-check the full transcript and the cited
+region for evidence that it occurred. An explicit occurrence must not be denied because a
+different part of the conversation was poor. Respect the current rule's AND/OR alternatives;
+do not require every alternative when the rule accepts any one of them.
+Return JSON only.
 """
 
 
@@ -82,12 +128,29 @@ def build_schema(checklist: ChecklistVersion) -> dict:
     """Generate one closed, typed result per current criterion; no hardcoded IDs."""
     properties = {}
     for criterion in checklist.criteria:
-        value = ({"type": "number", "enum": [step.value for step in criterion.scale]}
+        value = ({"type": "number", "enum": [step.value for step in criterion.scale],
+                  "description": ("Select the current step supported by the preceding reasoning and evidence. "
+                                  "These are the complete current anchors, not weights: "
+                                  + json.dumps([step.model_dump(mode="json") for step in criterion.scale],
+                                               ensure_ascii=False, separators=(",", ":")))}
                  if criterion.answer_type == AnswerType.SCALE else {"type": "boolean"})
         if criterion.allow_na:
             value = {"anyOf": [value, {"type": "string", "enum": ["N/A"]}]}
+        applicability = ({
+            "type": "object",
+            "description": ("Decide this BEFORE value, from current transcript facts. "
+                            "Does this exact N/A condition hold: " + criterion.na_condition
+                            + "? true means INAPPLICABLE and requires value N/A; false means APPLICABLE."),
+            "properties": {
+                "na_condition_applies": {"type": "boolean"},
+                "reasoning": {"type": "string", "description": "Brief facts showing why the current N/A condition is met or not met; not a performance grade."},
+                "evidence_message_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+            },
+            "required": ["na_condition_applies", "reasoning", "evidence_message_ids"],
+            "additionalProperties": False,
+        } if criterion.allow_na else {"type": "null"})
         fields = {
-            "value": value,
+            "applicability": applicability,
             "reasoning": {"type": "string"},
             "evidence_message_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1},
             "evidence_kind": {"type": "string", "enum": ["observed", "missing_action", "not_applicable"]},
@@ -104,6 +167,7 @@ def build_schema(checklist: ChecklistVersion) -> dict:
             "na_condition_met": ({"type": ["string", "null"],
                 "description": "Only explain applicability when value is the literal string N/A and evidence_kind is not_applicable. For any boolean or numeric value this MUST be null. A met N/A condition requires value N/A, never true."}
                 if criterion.allow_na else {"type": "null"}),
+            "value": value,
         }
         properties[criterion.id] = {
             "type": "object", "properties": fields, "required": list(fields), "additionalProperties": False,

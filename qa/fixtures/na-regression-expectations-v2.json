@@ -1,0 +1,221 @@
+{
+  "fixture_version": "na-regression-v2",
+  "synthetic": true,
+  "expectation_basis": "Rubric-derived synthetic assertions, not organizer annotations or holdout accuracy. V2 appends three negative controls to the unchanged frozen V1 six cases before candidate testing.",
+  "checklist": "Unmodified official freedom-cqa v1 snapshot.",
+  "cases": [
+    {
+      "conversation_id": "qa-final-ru-browser",
+      "language": "RU",
+      "scenario": "clear_from_start",
+      "primary": {
+        "criterion_id": "2",
+        "value": "N/A",
+        "rationale": "The initial request already identifies the specific information needed; clarification is unnecessary."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": "N/A",
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": false
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": false,
+      "source_fixture": "qa/fixtures/live-semantic-regressions.json (first)"
+    },
+    {
+      "conversation_id": "demo-kz-chat-20261107",
+      "language": "KZ",
+      "scenario": "clear_from_start",
+      "primary": {
+        "criterion_id": "2",
+        "value": "N/A",
+        "rationale": "The initial request already identifies the specific information needed; clarification is unnecessary."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": "N/A",
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": false
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": false,
+      "source_fixture": "contracts/demo-conversations.json (exact existing messages)"
+    },
+    {
+      "conversation_id": "demo-en-call-20261107",
+      "language": "EN",
+      "scenario": "clear_from_start",
+      "primary": {
+        "criterion_id": "2",
+        "value": "N/A",
+        "rationale": "The initial request already identifies the specific information needed; clarification is unnecessary."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": "N/A",
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": true
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": true,
+      "source_fixture": "contracts/demo-conversations.json (exact existing messages)"
+    },
+    {
+      "conversation_id": "synthetic-na-ru-clarification-v1",
+      "language": "RU",
+      "scenario": "clarification_needed",
+      "primary": {
+        "criterion_id": "2",
+        "value": true,
+        "rationale": "Client omits support versus office, operator asks before answering, client resolves the ambiguity."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": true,
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": false
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": false,
+      "source_fixture": "authored paired clarification control"
+    },
+    {
+      "conversation_id": "synthetic-na-kz-clarification-v1",
+      "language": "KZ",
+      "scenario": "clarification_needed",
+      "primary": {
+        "criterion_id": "2",
+        "value": true,
+        "rationale": "Client omits support versus office, operator asks before answering, client resolves the ambiguity."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": true,
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": false
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": false,
+      "source_fixture": "authored paired clarification control"
+    },
+    {
+      "conversation_id": "synthetic-na-en-clarification-v1",
+      "language": "EN",
+      "scenario": "clarification_needed",
+      "primary": {
+        "criterion_id": "2",
+        "value": true,
+        "rationale": "Client omits support versus office, operator asks before answering, client resolves the ambiguity."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": true,
+        "3": "N/A",
+        "4": 20,
+        "5": true,
+        "6": 10,
+        "7": true,
+        "8": false
+      },
+      "expected_score": 100.0,
+      "expected_critical_flag": false,
+      "source_fixture": "authored paired clarification control"
+    },
+    {
+      "conversation_id": "synthetic-na-ru-missing-ignored-v2",
+      "language": "RU",
+      "scenario": "missing_details_ignored",
+      "primary": {
+        "criterion_id": "2",
+        "value": false,
+        "rationale": "The initial request is ambiguous (support or office). The operator assumes support without asking, then ignores the explicit office clarification."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": false,
+        "3": "N/A",
+        "8": false
+      },
+      "expected_critical_flag": false,
+      "source_fixture": "authored negative control paired with the same language clarification-needed input",
+      "unasserted_criteria": [
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "unasserted_reason": "Not fixed: quality/fluency/empathy/closure judgments are not needed to test the applicability failure."
+    },
+    {
+      "conversation_id": "synthetic-na-kz-missing-ignored-v2",
+      "language": "KZ",
+      "scenario": "missing_details_ignored",
+      "primary": {
+        "criterion_id": "2",
+        "value": false,
+        "rationale": "The initial request is ambiguous (support or office). The operator assumes support without asking, then ignores the explicit office clarification."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": false,
+        "3": "N/A",
+        "8": false
+      },
+      "expected_critical_flag": false,
+      "source_fixture": "authored negative control paired with the same language clarification-needed input",
+      "unasserted_criteria": [
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "unasserted_reason": "Not fixed: quality/fluency/empathy/closure judgments are not needed to test the applicability failure."
+    },
+    {
+      "conversation_id": "synthetic-na-en-missing-ignored-v2",
+      "language": "EN",
+      "scenario": "missing_details_ignored",
+      "primary": {
+        "criterion_id": "2",
+        "value": false,
+        "rationale": "The initial request is ambiguous (support or office). The operator assumes support without asking, then ignores the explicit office clarification."
+      },
+      "expected_criteria": {
+        "1": true,
+        "2": false,
+        "3": "N/A",
+        "8": false
+      },
+      "expected_critical_flag": false,
+      "source_fixture": "authored negative control paired with the same language clarification-needed input",
+      "unasserted_criteria": [
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "unasserted_reason": "Not fixed: quality/fluency/empathy/closure judgments are not needed to test the applicability failure."
+    }
+  ]
+}

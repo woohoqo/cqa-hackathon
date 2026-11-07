@@ -284,7 +284,9 @@ def test_11_provider_failures_are_failed_jobs_and_exported(tmp_path, failure, ex
 
 
 @async_environment
-def test_11_unconfigured_production_entrypoint_has_no_fake_success(tmp_path):
+def test_11_unconfigured_production_entrypoint_has_no_fake_success(tmp_path, monkeypatch):
+    monkeypatch.setenv('GEMINI_API_KEY', '')
+    monkeypatch.setenv('GEMINI_MODEL', '')
     with client_for(tmp_path, callback=None) as client:
         record = evaluate(client, create_transcript(client), get_official(client))
         assert record['status'] == 'failed'

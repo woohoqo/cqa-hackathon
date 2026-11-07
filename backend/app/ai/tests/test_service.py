@@ -67,6 +67,63 @@ def test_invalid_answer_retries_full_input_and_accounts_both_attempts(monkeypatc
     assert len({r["run_id"] for r in ledger}) == 1
 
 
+def test_noncontiguous_region_gets_targeted_retry_and_preserves_raw(monkeypatch, settings):
+    invalid = response()
+    invalid["criteria"]["new/unknown-Ж"].update(
+        value="N/A", evidence_kind="not_applicable",
+        na_condition_met="No applicable request: synthetic fixture.",
+        checked_message_ids=["client", "operator"],
+    )
+    invalid_raw = json.dumps(invalid, ensure_ascii=False)
+    repaired = json.loads(invalid_raw)
+    repaired["criteria"]["new/unknown-Ж"]["checked_message_ids"] = ["client", "system", "operator"]
+    repaired_raw = " \n" + json.dumps(repaired, ensure_ascii=False, indent=4) + "\n"
+    calls = []
+
+    async def fake(cfg, instruction, content, schema):
+        calls.append((instruction, content, schema))
+        return reply(invalid_raw if len(calls) == 1 else repaired_raw)
+
+    monkeypatch.setattr(service.provider, "generate_once", fake)
+    result = asyncio.run(service.evaluate_dialogue(conversation(), checklist()))
+    assert len(calls) == 2
+    assert calls[0][1:] == calls[1][1:]
+    assert calls[1][0].startswith(calls[0][0])
+    feedback = calls[1][0][len(calls[0][0]):]
+    assert "noncontiguous_checked_region" in feedback
+    assert "EVERY message between its boundaries" in feedback
+    assert "including client, bot and system messages" in feedback
+    assert invalid_raw not in feedback
+    assert result.raw_response == repaired_raw
+    assert result.criteria[0].value == "N/A"
+    assert [(row["status"], row["error_code"]) for row in records(settings)] == [
+        ("invalid_response", "noncontiguous_checked_region"), ("completed", None),
+    ]
+
+
+def test_na_explanation_gets_applicability_retry_without_rewriting_raw(monkeypatch, settings):
+    data = response()
+    data["criteria"]["new/unknown-Ж"]["na_condition_met"] = "No applicable request"
+    invalid_raw = json.dumps(data, ensure_ascii=False)
+    data["criteria"]["new/unknown-Ж"].update(value="N/A", evidence_kind="not_applicable")
+    corrected_raw = json.dumps(data, ensure_ascii=False, indent=2)
+    instructions = []
+
+    async def fake(cfg, instruction, content, schema):
+        instructions.append(instruction)
+        return reply(invalid_raw if len(instructions) == 1 else corrected_raw)
+
+    monkeypatch.setattr(service.provider, "generate_once", fake)
+    result = asyncio.run(service.evaluate_dialogue(conversation(), checklist()))
+    assert len(instructions) == 2
+    feedback = instructions[1][len(instructions[0]):]
+    assert "unexpected_na_explanation" in feedback
+    assert "Re-check applicability first" in feedback
+    assert invalid_raw not in feedback
+    assert result.raw_response == corrected_raw
+    assert result.criteria[0].value == "N/A"
+
+
 def test_invalid_exhaustion_preserves_last_model_text(monkeypatch, settings):
     async def fake(*args): return reply('{"criteria":{}} ')
     monkeypatch.setattr(service.provider, "generate_once", fake)

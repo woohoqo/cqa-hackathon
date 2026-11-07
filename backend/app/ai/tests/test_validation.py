@@ -58,6 +58,7 @@ def test_schema_is_derived_from_unknown_ids_scale_and_na():
     assert schema["properties"]["scale"]["properties"]["value"] == {"type": "number", "enum": [0, 3, 9]}
     assert "anyOf" in schema["properties"]["new/unknown-Ж"]["properties"]["value"]
     assert schema["properties"]["flag"]["properties"]["value"] == {"type": "boolean"}
+    assert schema["properties"]["flag"]["properties"]["na_condition_met"] == {"type": "null"}
 
 
 def test_replacing_same_id_removes_old_rules_and_scale():

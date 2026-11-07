@@ -3,7 +3,7 @@ import json
 
 from ..contracts import AnswerType, ChecklistVersion, Conversation
 
-PROMPT_VERSION = "cqa-single-pass-v1.0.0"
+PROMPT_VERSION = "cqa-single-pass-v1.0.2"
 
 SYSTEM_PROMPT = """You are a careful multilingual conversation-quality evaluator (Russian, Kazakh,
 English, including mixed-language dialogue). Evaluate the HUMAN OPERATOR using only the current
@@ -24,8 +24,15 @@ precedence over general checklist description when they conflict. Judge criteria
 For boolean and flag answers return JSON booleans, not strings or numbers. A flag true means
 the event described by that flag is present; do not invert it to mean good performance. For a
 scale choose exactly one configured step; do not interpolate or use criterion weight as a scale.
-Use N/A only when this criterion permits it AND its exact applicability condition is met. Lack
+Determine applicability BEFORE grading performance. When this criterion permits N/A and its
+exact applicability condition is met, you MUST choose N/A rather than award a positive or negative
+performance answer. Use N/A only when that condition is met. Lack
 of proof, uncertainty or poor performance alone is not an N/A condition.
+N/A must be encoded as the literal JSON string "N/A" in value, with
+evidence_kind="not_applicable" and a concrete na_condition_met explanation. Never encode
+an inapplicable criterion as value=true just because no action was required. For example,
+if a configured rule allows N/A for informational requests and this request is informational,
+value is "N/A", NOT true. For ALL boolean/numeric values na_condition_met MUST be JSON null.
 
 EVIDENCE AND REASONING:
 Read the complete transcript in supplied order. Preserve original IDs and timestamp meanings.
@@ -41,9 +48,14 @@ rewriting the source evidence. Write brief, concrete explanations in Russian.
 Return the schema-defined object with a criteria map keyed by exact current IDs. Each result:
 - reasoning: concise explanation of the decision and its relevant rule; no invented quotations.
 - evidence_message_ids: nonempty original IDs supporting the decision. Context IDs are valid.
+  These supporting references may be nonadjacent; they are not a checked region.
 - evidence_kind: observed, missing_action, or not_applicable.
 - checked_message_ids: a contiguous, ordered list of original IDs covering the checked region.
   Required for missing_action; also use it for conclusions that no described event occurred.
+  Include EVERY message between the first and last checked IDs, including client, bot and system
+  messages. Never skip intervening messages. If input order is [mA,mB,mC], [mA,mC] is INVALID here:
+  use [mA,mB,mC]. For observed actions or N/A, this list may be [] when no checked region is needed;
+  use evidence_message_ids for specific supporting references instead.
 - expected_action: null unless an action required by this criterion was missing. For a missing
   action give the message_id where it was expected, position before/in/after that message,
   and a short description of the expected action. Include that anchor in the checked region.
@@ -79,7 +91,8 @@ def build_schema(checklist: ChecklistVersion) -> dict:
             "reasoning": {"type": "string"},
             "evidence_message_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1},
             "evidence_kind": {"type": "string", "enum": ["observed", "missing_action", "not_applicable"]},
-            "checked_message_ids": {"type": "array", "items": {"type": "string"}},
+            "checked_message_ids": {"type": "array", "items": {"type": "string"},
+                "description": "Complete contiguous region in transcript order, with EVERY intervening message including bot/system. Never sparse evidence IDs. May be empty for observed/N/A when no region is needed."},
             "expected_action": {"anyOf": [
                 {"type": "null"},
                 {"type": "object", "properties": {
@@ -88,7 +101,9 @@ def build_schema(checklist: ChecklistVersion) -> dict:
                     "description": {"type": "string"},
                 }, "required": ["message_id", "position", "description"], "additionalProperties": False},
             ]},
-            "na_condition_met": {"type": ["string", "null"]},
+            "na_condition_met": ({"type": ["string", "null"],
+                "description": "Only explain applicability when value is the literal string N/A and evidence_kind is not_applicable. For any boolean or numeric value this MUST be null. A met N/A condition requires value N/A, never true."}
+                if criterion.allow_na else {"type": "null"}),
         }
         properties[criterion.id] = {
             "type": "object", "properties": fields, "required": list(fields), "additionalProperties": False,

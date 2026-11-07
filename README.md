@@ -1,81 +1,127 @@
-# CQA — Freedom Broker hackathon
+# CQA — оценка качества диалогов
 
-FastAPI + Pydantic + SQLite backend; React/Vite UI and Gemini evaluation are separate team modules.
-Repository is private. Only synthetic examples belong in Git.
+FastAPI + Pydantic + SQLite, React/Vite и настоящий Gemini API. Импортируйте транскрипт,
+запустите оценку, откройте доказательства и при необходимости подайте апелляцию.
+Исходный AI-ответ и снимок чек-листа сохраняются отдельно от решений проверяющего.
+В приложении нет фиктивного провайдера, подготовленных оценок или кэша ответов.
 
-## Start backend (Python 3.11+)
+## Запуск на другом компьютере
+
+Нужны Python 3.11+, Node.js 22.12+ и pnpm 11 (`npm install --global pnpm@11`).
+Для закрытого репозитория нужен доступ collaborator. При использовании подключения ChatGPT
+его GitHub-приложению также нужен доступ к репозиторию; терминальный Git авторизуется отдельно.
+
+PowerShell:
 
 ```powershell
+git clone https://github.com/woohoqo/cqa-hackathon.git
+cd cqa-hackathon
 python -m venv .venv
 .venv\Scripts\python -m pip install -c requirements.lock -e ".[dev]"
-Copy-Item .env.example .env
-.venv\Scripts\python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+if (-not (Test-Path -LiteralPath .env)) {
+    Copy-Item -LiteralPath .env.example -Destination .env
+}
+pnpm --dir frontend install --frozen-lockfile
+pnpm --dir frontend build
 ```
 
-On macOS/Linux use `.venv/bin/python` and `cp .env.example .env`.
-Health: http://127.0.0.1:8000/health. Interactive API: http://127.0.0.1:8000/docs.
-Implemented routes and examples are in `contracts/README.md`; generated OpenAPI matches the application.
-The official eight-criterion checklist is created on first startup. New versions never replace old ones.
-Use one Uvicorn process (no `--workers`): the durable SQLite queue runs `AI_CONCURRENCY` async consumers.
-On restart queued jobs resume; interrupted running jobs fail explicitly and can be resubmitted.
-
-## Shared contracts and team handoff
-
-- Read `AGENTS.md`, `backend/app/contracts.py`, `contracts/README.md`, `contracts/models.schema.json`.
-- Agent 2: implement `backend/app/ai/service.py`; all criteria/scale/N/A instructions come from checklist.
-- Agent 3: implement `frontend/`; API base URL `http://127.0.0.1:8000`, prefix `/api/v1`.
-- Agent 4: add independent checks under `qa/` and `docs/qa/`; coordinate shared format changes with agent 1.
-- Start branches `feat/ai`, `feat/ui`, `feat/qa` from published main in separate clones/worktrees.
-- Private repository access requires a GitHub collaborator invitation from the repository owner.
-
-AI needs a real Gemini API key and model ID in local `.env`. The foundation deliberately returns
-`provider_not_configured` until the AI implementation is integrated. No mock provider runs in production.
-`DEV_API_URL` holds the complete signed API URL locally, never in code or Git.
-
-Student Guide v3 and Chat Quality Checklist are reflected in `contracts/official-requirements.md`
-and `backend/app/default_checklist.py`. `POST /api/v1/imports/dev` fetches the organizer envelope;
-an optional `{"group_id":"CONTROL"}` body selects a future group without exposing the signed URL.
-JSON import accepts `{"conversations":[...]}`; new transcripts use `POST /api/v1/conversations`.
-Reimporting the same source/external_id/content reuses IDs; changed content returns 409 without overwriting.
-
-Start a batch with `POST /api/v1/evaluations`, then poll its batch/evaluation IDs until completed or failed.
-Results include original and final scores, exact AI response and checklist snapshot. Accepted appeals
-modify only final criteria/scores. JSON exports include reviewer audit history; CSV exports summary scores.
-Scores are calculated with Decimal, normalizing N/A and rounding only the total. Gross errors remain flags.
-
-Before hackathon submission the guide requires a public repository; this development repository remains
-private as requested. Record the real Gemini model and approximate evaluation cost after AI integration.
-The organizer reference scores are not supplied, so agreement with them cannot yet be measured.
-
-## Development
+Заполните `GEMINI_API_KEY` в корневом `.env`. Пример выбирает проверенную модель
+`gemini-3.5-flash-lite` и `AI_PROVIDER=gemini`. Для импорта DEV заполните `DEV_API_URL`
+полной подписанной ссылкой организаторов. Без неё доступен импорт JSON.
+Не перезаписывайте существующий `.env`, не добавляйте ключи в frontend или Git.
+Переменные процесса имеют приоритет над `.env`; после изменения настроек перезапустите backend.
 
 ```powershell
-.venv\Scripts\python -m scripts.export_contracts
-.venv\Scripts\python -m scripts.export_examples
-.venv\Scripts\python -m pytest
+.venv\Scripts\python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Data is local in ignored `data/`. Keep the development server bound to localhost. This prototype
-does not yet provide authentication or production access control.
+Откройте **http://127.0.0.1:8000**. Backend обслуживает `frontend/dist`; сборка должна
+существовать до запуска сервера. API: http://127.0.0.1:8000/docs; health: `/health`.
+На macOS/Linux используйте `.venv/bin/python` и `cp .env.example .env`, только если файла ещё нет.
+Все команды выполняются из корня проекта.
 
-## Verified backend checkpoint
+Используйте один процесс Uvicorn, без `--workers`. SQLite и очередь находятся в игнорируемой
+папке `data/`. Ожидающие задания продолжаются после перезапуска; прерванные выполнявшиеся
+задания получают понятную ошибку и допускают новый запуск.
 
-- 54 automated checks: scoring, strict references, API jobs, checklist versions, original AI preservation,
-  accepted/rejected appeals, interrupted jobs, import adapter and generated contract consistency.
-- Live localhost server: health, official checklist, organizer import of 65 DEV records, repeat import
-  with 65 existing records and stable IDs, explicit missing-provider failure, JSON/CSV exports.
-- No real Gemini call has been performed in this checkpoint. Tests use clearly labeled test-only
-  evaluators; the server itself has no synthetic provider fallback.
-- `contracts/examples.json` contains typed synthetic request/response examples, including 85.38.
-- The current Starlette dependency emits one TestClient deprecation warning; all checks pass.
+Для разработки добавьте backend параметр `--reload`, а во втором терминале выполните
+`pnpm --dir frontend dev`. Интерфейс: http://127.0.0.1:5173. Vite передаёт `/api` на backend.
+Другой адрес proxy задаётся через `CQA_BACKEND_URL` в локальном `frontend/.env`;
+`VITE_API_BASE_URL` задаёт адрес API для отдельно размещённой сборки.
 
-## Continue integration
+## Возможности и правила
 
-Fetch main before integrating; keep feature work in the assigned branch and a separate checkout.
-AI owner: implement the agreed async entry point, preserve raw provider text, reference messages for
-every criterion, include model/prompt versions and document approximate full-call cost. Request any new
-Python dependencies through the integrator; the provider directory can carry its own dependency list.
-UI owner: follow OpenAPI, poll jobs, handle structured errors/null totals, show original/final results,
-checklist versions, appeals and audio links. Keep the UI suitable for later Dynamics 365 HTML embedding.
-QA owner: independently verify rules, evidence navigation and the real AI/UI path after their PRs arrive.
-Only agent 1 merges into main after checks. The full real-AI-to-UI path awaits those branches and a key.
+- DEV API, JSON и новые транскрипты; исходные роли, текст, время и стабильные ID.
+- Пакеты оценок, очередь, статусы, понятные ошибки и повторный запуск.
+- Неизменяемые версии чек-листа: произвольные критерии, секции, веса, шкалы и N/A.
+- Доказательства с переходом к сообщениям, история запусков и сохранение после обновления страницы.
+- Апелляции, решения проверяющего, отдельный окончательный результат и история решений.
+- Выгрузка JSON с историей и CSV с итогами на странице диалогов.
+- RU/KZ/EN, смешанный текст, транскрипты звонков и доступные ссылки на аудио.
+
+Официальные правила: [contracts/official-requirements.md](contracts/official-requirements.md).
+Да даёт полный вес; Нет — ноль; шкала делится на свой максимум, а не на вес.
+N/A исключает вес из знаменателя, остальные веса нормализуются до 100. Округляется только
+общий итог до двух знаков. Без применимого положительного веса итог отсутствует.
+Грубая ошибка — отдельный флаг без обнуления результата. Контрольный пример №2/3=N/A
+и №1/4/5/6/7=Да/15/Да/7/Да даёт **85,38**. У №6 максимум 10 при весе 15.
+
+При ошибке или отсутствии ключа баллы не выдумываются. Провайдер получает весь транскрипт
+и выбранный снимок правил; метаданные и аудиоссылки не отправляются. `.env.example` ограничивает
+параллелизм до 1, задаёт 15 секунд между началами запросов и максимум 2 попытки.
+Это настройки приложения, не обещание квоты Google. После 429 учитывается cooldown;
+дневная квота требует повторного запуска позже. [Описание AI](backend/app/ai/README.md).
+
+## Пятиминутная демонстрация
+
+1. **0:00–1:00:** импортируйте `contracts/demo-conversations.json`. Это четыре явно синтетических
+   транскрипта без подготовленных ответов. По исходной версии оцените `demo-ru-new-20261107`.
+2. **1:00–2:00:** покажите результат, N/A, шкалу №6 и отдельный флаг. Нажмите доказательство,
+   затем обновите страницу. Пакет KZ/EN можно запустить заранее.
+3. **2:00–3:00:** замените смысл первого критерия на требование явного извинения
+   («Да только при явном извинении; приветствие не считается»), сохраните новую версию,
+   выберите её и повторно оцените диалог. Старый результат остаётся в истории.
+4. **3:00–4:00:** на синтетическом примере подайте апелляцию, переключитесь в режим проверяющего,
+   измените ответ с обоснованием и доказательством. Сравните исходный AI и окончательный итог.
+5. **4:00–5:00:** покажите EN-звонок, KZ-диалог, фильтры и выгрузку JSON/CSV.
+   В изменённом RU-транскрипте с извинением новый вызов должен учитывать новый текст.
+
+Заранее проверьте квоту и соединение. Время ответа зависит от Google; ожидание и ошибку
+показывайте честно. Сохранённый настоящий запуск показывайте с датой и версией.
+Демонстрационная ручная корректировка не является человеческим эталоном.
+
+## Проверки и ограничения
+
+```powershell
+.venv\Scripts\python -m pip check
+.venv\Scripts\python -m pytest backend/tests backend/app/ai/tests qa -q
+node qa/test_annotation.cjs
+node --experimental-strip-types --test qa/test_ui_contract.cjs
+pnpm --dir frontend test
+pnpm --dir frontend build
+.venv\Scripts\python -m scripts.export_contracts
+```
+
+Автотесты используют синтетические данные и изолированные провайдеры. Корневой `conftest.py`
+блокирует настоящий HTTP в pytest даже при настроенном ключе. Живая проверка описана отдельно
+в [docs/integration-report.md](docs/integration-report.md).
+
+Это прототип для localhost: переключатель ролей не является аутентификацией. Нет полноценного
+контроля доступа, распознавания аудио и точной перемотки аудио по каждому сообщению.
+Для длинных транскриптов действуют лимиты модели и таймауты, без усечения исходного текста.
+Стоимость в `data/ai_usage.jsonl` неизвестна без подтверждённых тарифов и полного usage;
+количество оценок не равно количеству HTTP-попыток. Подробнее о журнале — в описании AI.
+
+Близость к эталонам организаторов не измерена: эталонные оценки не предоставлены.
+Успешные вызовы и структурные тесты не заменяют независимую человеческую разметку;
+holdout не используется для настройки. Репозиторий разработки остаётся закрытым.
+Перед публичной сдачей по руководству требуется отдельная проверка содержимого.
+Реальные записи, исходные PDF, SQLite, ключи и подписанные ссылки в Git не входят.
+
+## Контракты и команда
+
+[AGENTS.md](AGENTS.md) фиксирует владение каталогами. Общие модели — `backend/app/contracts.py`;
+API, примеры и генерируемые схемы — `contracts/`. Интерфейс AI:
+`async evaluate_dialogue(conversation, checklist) -> EvaluationDraft`.
+Общие форматы централизует агент 1; он же объединяет готовые ветки в main после проверок.
+Каждый участник работает в отдельной копии/worktree, делает commit/push и проверяет удалённый SHA.

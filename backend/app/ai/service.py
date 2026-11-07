@@ -102,6 +102,16 @@ async def evaluate_dialogue(conversation: Conversation, checklist: ChecklistVers
                         feedback = ("\nPrevious response failed validation (" + str(exc) + "). "
                                     "Re-evaluate the complete input and return a complete schema-valid result. "
                                     "Do not change or omit any criterion or invent message IDs.")
+                        if str(exc) == "noncontiguous_checked_region":
+                            feedback += (" checked_message_ids must contain EVERY message between its boundaries, "
+                                         "including client, bot and system messages, in original order. "
+                                         "Do not copy sparse evidence references into this field. "
+                                         "For observed/N/A decisions use [] if no checked region is needed.")
+                        elif str(exc) == "unexpected_na_explanation":
+                            feedback += (" Re-check applicability first: when an allowed N/A condition is met, "
+                                         "set value to the literal string N/A and evidence_kind to not_applicable. "
+                                         "Never use true to represent that no action was needed. "
+                                         "For every boolean/numeric answer na_condition_met must be null.")
                     else:
                         audit(attempt, "completed", reply)
                         return EvaluationDraft(criteria=criteria, raw_response=reply.raw_text,

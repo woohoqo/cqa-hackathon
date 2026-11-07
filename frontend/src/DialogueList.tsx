@@ -2,17 +2,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ChecklistVersion, Conversation, Dataset, Evaluation, EvaluationBatch, EvaluationRun } from './types';
 import { channel, channelLabel, language, newestFirst, numberLabel, pending, statusLabels } from './display';
 import { Empty, Icon, Status } from './components';
-import { ascendingFinalScore, evaluationProvenance, paginate } from './workflow';
+import { ascendingFinalScore, attemptsForRun, evaluationProvenance, paginate } from './workflow';
 import { ExportPanel } from './ExportPanel';
 
 interface Props {
-  conversations: Conversation[]; evaluations: Evaluation[]; checklists: ChecklistVersion[];
+  conversations: Conversation[]; checklists: ChecklistVersion[];
   datasets: Dataset[]; datasetId: string; onDataset: (id: string) => void;
   runs: EvaluationRun[]; runId: string; onRun: (id: string) => void; batch: EvaluationBatch | null;
   checklistId: string; onChecklist: (id: string) => void; onEvaluate: (ids: string[]) => Promise<void>;
   onRetry: (failedIds: string[]) => Promise<void>; busy: boolean; refreshing: boolean; onRefresh: () => void; onImport: () => void;
 }
-export function DialogueList({ conversations, evaluations, checklists, datasets, datasetId, onDataset, runs, runId, onRun, batch, checklistId, onChecklist, onEvaluate, onRetry, busy, refreshing, onRefresh, onImport }: Props) {
+export function DialogueList({ conversations, checklists, datasets, datasetId, onDataset, runs, runId, onRun, batch, checklistId, onChecklist, onEvaluate, onRetry, busy, refreshing, onRefresh, onImport }: Props) {
   const [query, setQuery] = useState(''); const [lang, setLang] = useState(''); const [kind, setKind] = useState(''); const [status, setStatus] = useState(''); const [gross, setGross] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [scoreSort, setScoreSort] = useState(false);
@@ -22,10 +22,9 @@ export function DialogueList({ conversations, evaluations, checklists, datasets,
   const datasetConversations = conversations.filter(item => datasetIds.has(item.id));
   const runIds = new Set(batch?.run?.conversation_ids || []);
   const scopedConversations = runId ? datasetConversations.filter(item => runIds.has(item.id)) : datasetConversations;
-  const datasetRunIds = new Set(runs.filter(item => item.dataset_id === datasetId).map(item => item.id));
-  const scopedEvaluations = runId ? batch?.evaluations || [] : evaluations.filter(item => datasetIds.has(item.conversation_id) && (item.dataset_id === datasetId || datasetRunIds.has(item.batch_id)));
+  const scopedEvaluations = attemptsForRun(batch?.evaluations || [], runId);
   const latest = useMemo(() => { const map = new Map<string, Evaluation>(); newestFirst(scopedEvaluations).forEach(item => { if (!map.has(item.conversation_id)) map.set(item.conversation_id, item); }); return map; }, [scopedEvaluations]);
-  const pendingIds = new Set(evaluations.filter(pending).map(item => item.conversation_id));
+  const pendingIds = new Set(scopedEvaluations.filter(pending).map(item => item.conversation_id));
   const filtered = scopedConversations.filter(conversation => {
     const result = latest.get(conversation.id);
     return `${conversation.external_id || ''} ${conversation.id}`.toLowerCase().includes(query.toLowerCase()) && (!lang || language(conversation) === lang) && (!kind || channel(conversation) === kind) && (!status || (result?.status || 'none') === status) && (!gross || result?.final_score?.gross_error === true);
@@ -56,7 +55,7 @@ export function DialogueList({ conversations, evaluations, checklists, datasets,
       <ExportPanel dataset={dataset} batch={batch} />
     </section>
     <section className="panel dialogues-panel workflow-table">
-      <div className="panel-heading"><div><div className="eyebrow">{runId ? 'ДИАЛОГИ ВЫБРАННОГО ЗАПУСКА' : 'ДИАЛОГИ ВЫБРАННОГО НАБОРА'}</div><h2>Диалоги <span className="count">{shown.length}</span></h2><p>{runId ? 'Показаны последние попытки этого запуска.' : 'Показаны последние сохранённые оценки диалогов. Для выгрузки выберите конкретный запуск.'}</p></div><div className="selection-summary"><strong>Выбрано: {selectedIds.length}</strong>{selectedIds.length > 0 && <button className="text-button" onClick={() => setSelected(new Set())}>Снять выбор</button>}<span className="help">Выбор сохраняется при фильтрации и сортировке.</span></div></div>
+      <div className="panel-heading"><div><div className="eyebrow">{runId ? 'ДИАЛОГИ ВЫБРАННОГО ЗАПУСКА' : 'ДИАЛОГИ ВЫБРАННОГО НАБОРА'}</div><h2>Диалоги <span className="count">{shown.length}</span></h2><p>{runId ? 'Показаны последние попытки этого запуска.' : 'Исходные диалоги без оценок. Для результатов выберите сохранённый запуск.'}</p></div><div className="selection-summary"><strong>Выбрано: {selectedIds.length}</strong>{selectedIds.length > 0 && <button className="text-button" onClick={() => setSelected(new Set())}>Снять выбор</button>}<span className="help">Выбор сохраняется при фильтрации и сортировке.</span></div></div>
       <div className="filters"><label className="search-field"><Icon name="search" /><input aria-label="Поиск по ID" placeholder="Поиск по ID диалога" value={query} onChange={event => setQuery(event.target.value)} /></label><label className="filter-field"><span className="sr-only">Язык</span><select aria-label="Язык" value={lang} onChange={event => setLang(event.target.value)}><option value="">Все языки</option>{Array.from(new Set(datasetConversations.map(language))).filter(item => item !== '—').sort().map(item => <option key={item}>{item}</option>)}</select></label><label className="filter-field"><span className="sr-only">Канал</span><select aria-label="Канал" value={kind} onChange={event => setKind(event.target.value)}><option value="">Все каналы</option>{Array.from(new Set(datasetConversations.map(channel))).map(item => <option key={item} value={item}>{channelLabel(item)}</option>)}</select></label><label className="filter-field"><span className="sr-only">Статус</span><select aria-label="Статус" value={status} onChange={event => setStatus(event.target.value)}><option value="">Все статусы</option>{Object.entries(statusLabels).map(([key, text]) => <option key={key} value={key}>{text}</option>)}</select></label><label className="check-label"><input type="checkbox" checked={gross} onChange={event => setGross(event.target.checked)} />Грубая ошибка</label></div>
       {!dataset ? <Empty title="Начните с первого набора" action={<button className="button primary" onClick={onImport}><Icon name="upload" />Загрузить диалоги</button>}>Импортируйте JSON или получите набор с сервера организаторов.</Empty> : shown.length === 0 ? <Empty title="Ничего не найдено" action={<button className="button secondary" onClick={() => { setQuery(''); setLang(''); setKind(''); setStatus(''); setGross(false); }}>Сбросить фильтры</button>}>Измените фильтры или выберите другой запуск.</Empty> : <div className="table-scroll"><table className="dialogue-table"><thead><tr><th className="checkbox-cell"><input ref={checkAll} type="checkbox" aria-label="Выбрать все отфильтрованные диалоги на всех страницах" checked={allSelected} disabled={!eligible.length || busy} onChange={event => setSelected(previous => { const next = new Set(previous); eligible.forEach(item => event.target.checked ? next.add(item.id) : next.delete(item.id)); return next; })} /></th><th>Диалог</th><th>Язык / канал</th><th>Статус</th><th aria-sort={scoreSort ? 'ascending' : 'none'}><button className="score-sort" onClick={() => setScoreSort(value => !value)}>Итог с учётом апелляций <span aria-hidden="true">{scoreSort ? '↑' : '↕'}</span></button></th><th>Грубая ошибка</th><th>Модель / версия / время</th><th><span className="sr-only">Открыть</span></th></tr></thead><tbody>{pagination.items.map(conversation => {
         const result = latest.get(conversation.id); const isPending = pendingIds.has(conversation.id); const provenance = result ? evaluationProvenance(result) : null;

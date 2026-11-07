@@ -7,6 +7,7 @@ import { DialogueDetail } from './DialogueDetail';
 import { ChecklistEditor } from './ChecklistEditor';
 import { ImportDialog } from './ImportDialog';
 import { newestFirst, pending } from './display';
+import { attemptsForRun } from './workflow';
 
 function readSelection(key: string) { try { return localStorage.getItem(key) || ''; } catch { return ''; } }
 function storeSelection(datasetId: string, runId: string) { try { localStorage.setItem('cqa.dataset', datasetId); localStorage.setItem('cqa.run', runId); } catch { /* Storage may be disabled. Server records remain available. */ } }
@@ -43,17 +44,17 @@ export default function App() {
     const nextController = new AbortController(); controller.current = nextController;
     setRefreshing(true);
     try {
-      const [cs, es, cls, ds, rs] = await Promise.all([api.listConversations(nextController.signal), api.listEvaluations(nextController.signal), api.listChecklists(nextController.signal), api.listDatasets(nextController.signal), api.listRuns(nextController.signal)]);
+      const [cs, cls, ds, rs] = await Promise.all([api.listConversations(nextController.signal), api.listChecklists(nextController.signal), api.listDatasets(nextController.signal), api.listRuns(nextController.signal)]);
       if (sequence !== loadSequence.current) return;
       ds.sort((a, b) => b.created_at.localeCompare(a.created_at)); rs.sort((a, b) => b.created_at.localeCompare(a.created_at));
       const selectedDataset = ds.some(item => item.id === selection.current.datasetId) ? selection.current.datasetId : ds[0]?.id || '';
       const selectedRun = rs.some(item => item.id === selection.current.runId && item.dataset_id === selectedDataset) ? selection.current.runId : '';
-      const selectedBatch = selectedRun ? await api.getBatch(selectedRun) : null;
+      const [selectedBatch, attempts] = selectedRun ? await Promise.all([api.getBatch(selectedRun, nextController.signal), api.getAttempts(selectedRun, nextController.signal)]) : [null, []];
       if (sequence !== loadSequence.current) return;
       selection.current = { datasetId: selectedDataset, runId: selectedRun }; storeSelection(selectedDataset, selectedRun);
       setDatasetId(selectedDataset); setRunId(selectedRun); setDatasets(ds); setRuns(rs); setBatch(selectedBatch);
       const sorted = [...cls].sort((a, b) => b.created_at.localeCompare(a.created_at) || b.version - a.version);
-      const merged = new Map(es.map(item => [item.id, item])); selectedBatch?.evaluations.forEach(item => merged.set(item.id, item));
+      const merged = new Map(attemptsForRun(attempts, selectedRun).map(item => [item.id, item])); selectedBatch?.evaluations.forEach(item => merged.set(item.id, item));
       setConversations(cs); setEvaluations([...merged.values()]); setChecklists(sorted);
       setChecklistId(current => sorted.some(c => c.id === current) ? current : sorted[0]?.id || '');
       setConnected(true); setError('');
@@ -66,7 +67,8 @@ export default function App() {
     }
   }, []);
   useEffect(() => { void refresh().catch(() => {}); return () => { controller.current?.abort(); }; }, [refresh]);
-  const active = evaluations.some(pending);
+  const runEvaluations = attemptsForRun(evaluations, runId);
+  const active = runEvaluations.some(pending);
   useEffect(() => {
     if (!active || refreshing) return;
     const timer = window.setTimeout(() => { void refresh().catch(() => {}); }, connected ? 2000 : 5000);
@@ -75,7 +77,7 @@ export default function App() {
 
   function selectContext(nextDatasetId: string, nextRunId: string) {
     selection.current = { datasetId: nextDatasetId, runId: nextRunId };
-    storeSelection(nextDatasetId, nextRunId); setDatasetId(nextDatasetId); setRunId(nextRunId); setBatch(null);
+    storeSelection(nextDatasetId, nextRunId); setDatasetId(nextDatasetId); setRunId(nextRunId); setBatch(null); setEvaluations([]);
     void refresh().catch(() => {});
   }
 
@@ -85,7 +87,7 @@ export default function App() {
     const nextDatasetId = result.run?.dataset_id || selection.current.datasetId;
     setDatasetId(nextDatasetId); selection.current = { datasetId: nextDatasetId, runId: result.id }; storeSelection(nextDatasetId, result.id);
     if (result.run) setRuns(previous => [result.run!, ...previous.filter(item => item.id !== result.run!.id)]);
-    setEvaluations(previous => { const merged = new Map(previous.map(item => [item.id, item])); result.evaluations.forEach(item => merged.set(item.id, item)); return [...merged.values()]; });
+    setEvaluations(previous => { const merged = new Map(attemptsForRun(previous, result.id).map(item => [item.id, item])); result.evaluations.forEach(item => merged.set(item.id, item)); return [...merged.values()]; });
   }
 
   async function evaluate(ids: string[]) {
@@ -123,7 +125,7 @@ export default function App() {
     if (result.dataset) {
       setDatasets(previous => [result.dataset!, ...previous.filter(item => item.id !== result.dataset!.id)]);
       selection.current = { datasetId: result.dataset.id, runId: '' }; storeSelection(result.dataset.id, '');
-      setDatasetId(result.dataset.id); setRunId(''); setBatch(null);
+      setDatasetId(result.dataset.id); setRunId(''); setBatch(null); setEvaluations([]);
     }
     setNotice(`Импорт завершён: добавлено ${result.imported}, уже существовало ${result.existing}.`);
     void refresh().catch(() => {});
@@ -131,7 +133,7 @@ export default function App() {
   const selectedChecklist = checklists.find(c => c.id === checklistId);
   let currentId = ''; try { currentId = decodeURIComponent(hash.slice('#dialog/'.length)); } catch { /* Invalid hash is shown as missing. */ }
   const currentConversation = conversations.find(c => c.id === currentId);
-  const completed = newestFirst(evaluations).filter(e => e.status === 'completed');
+  const completed = newestFirst(runEvaluations).filter(e => e.status === 'completed');
   const reviewEvaluation = completed.find(e => e.id === reviewId) || completed[0];
   useEffect(() => { if (reviewEvaluation && reviewId !== reviewEvaluation.id) setReviewId(reviewEvaluation.id); }, [reviewId, reviewEvaluation?.id]);
   const reviewConversation = conversations.find(c => c.id === reviewEvaluation?.conversation_id);
@@ -158,11 +160,11 @@ export default function App() {
         {notice && <div className="notice success" role="status"><span><Icon name="check" size={18} />{notice}</span><button className="icon-button" onClick={() => setNotice('')} aria-label="Закрыть уведомление"><Icon name="close" size={16} /></button></div>}
         {error && <ErrorNotice message={error} onRetry={() => void refresh().catch(() => {})} />}
         {loading ? <Loading /> : <>
-          <div hidden={page !== 'dialogs'}><DialogueList conversations={conversations} evaluations={evaluations} checklists={checklists} datasets={datasets} datasetId={datasetId} onDataset={id => selectContext(id, '')} runs={runs} runId={runId} onRun={id => selectContext(datasetId, id)} batch={batch} checklistId={checklistId} onChecklist={setChecklistId} onEvaluate={evaluate} onRetry={retryFailed} busy={starting} refreshing={refreshing} onRefresh={() => void refresh().catch(() => {})} onImport={() => setImportOpen(true)} /></div>
-          {page === 'detail' && (currentConversation ? <DialogueDetail key={`${currentConversation.id}:${runId}`} initialEvaluationId={batch?.evaluations.find(item => item.conversation_id === currentConversation.id)?.id} conversation={currentConversation} evaluations={evaluations} checklist={selectedChecklist} onEvaluate={evaluate} busy={starting} onUpdated={refresh} reviewMode={reviewMode} /> : <Empty title="Диалог не найден" action={<a className="button secondary" href="#dialogs">К списку диалогов</a>}>Обновите данные или выберите диалог из списка.</Empty>)}
+          <div hidden={page !== 'dialogs'}><DialogueList conversations={conversations} checklists={checklists} datasets={datasets} datasetId={datasetId} onDataset={id => selectContext(id, '')} runs={runs} runId={runId} onRun={id => selectContext(datasetId, id)} batch={batch} checklistId={checklistId} onChecklist={setChecklistId} onEvaluate={evaluate} onRetry={retryFailed} busy={starting} refreshing={refreshing} onRefresh={() => void refresh().catch(() => {})} onImport={() => setImportOpen(true)} /></div>
+          {page === 'detail' && (currentConversation ? <DialogueDetail key={`${currentConversation.id}:${runId}`} runSelected={!!runId} initialEvaluationId={batch?.evaluations.find(item => item.conversation_id === currentConversation.id)?.id} conversation={currentConversation} evaluations={runEvaluations} checklist={selectedChecklist} onEvaluate={evaluate} busy={starting} onUpdated={refresh} reviewMode={reviewMode} /> : <Empty title="Диалог не найден" action={<a className="button secondary" href="#dialogs">К списку диалогов</a>}>Обновите данные или выберите диалог из списка.</Empty>)}
           {/* Keep the editor mounted to preserve unsaved work while navigating sections. */}
           <div hidden={page !== 'checklist'}><ChecklistEditor checklists={checklists} selectedId={checklistId} onSelect={setChecklistId} onSave={saveChecklist} onUse={id => { setChecklistId(id); setNotice('Версия выбрана. Отметьте диалоги и нажмите «Оценить выбранные».'); window.location.hash = 'dialogs'; }} /></div>
-          {page === 'appeals' && (reviewEvaluation && reviewConversation ? <><div className="panel review-selector"><label className="field">Оценка для апелляции<select aria-label="Оценка для апелляции" value={reviewEvaluation.id} onChange={e => setReviewId(e.target.value)}>{completed.map(e => <option key={e.id} value={e.id}>{conversations.find(c => c.id === e.conversation_id)?.external_id || e.conversation_id} · {e.checklist_snapshot.name} v{e.checklist_snapshot.version} · {new Date(e.created_at).toLocaleString('ru-RU')}</option>)}</select></label><p className="help">Для принятия решения выберите режим «Проверяющий» в верхней панели.</p></div><DialogueDetail key={`review-${reviewEvaluation.id}`} initialEvaluationId={reviewEvaluation.id} conversation={reviewConversation} evaluations={evaluations} checklist={selectedChecklist} onEvaluate={evaluate} busy={starting} onUpdated={refresh} reviewMode={reviewMode} reviewOnly /></> : <Empty title="Нет завершённых оценок">Сначала оцените диалог. Затем можно будет выбрать критерий и подать апелляцию.</Empty>)}
+          {page === 'appeals' && (reviewEvaluation && reviewConversation ? <><div className="panel review-selector"><label className="field">Оценка для апелляции в выбранном запуске<select aria-label="Оценка для апелляции" value={reviewEvaluation.id} onChange={e => setReviewId(e.target.value)}>{completed.map(e => <option key={e.id} value={e.id}>{conversations.find(c => c.id === e.conversation_id)?.external_id || e.conversation_id} · {e.checklist_snapshot.name} v{e.checklist_snapshot.version} · {new Date(e.created_at).toLocaleString('ru-RU')}</option>)}</select></label><p className="help">Запуск {runId.slice(0, 8)}. <a href="#dialogs">Изменить выбранный запуск</a>. Для принятия решения выберите режим «Проверяющий» в верхней панели.</p></div><DialogueDetail key={`review-${reviewEvaluation.id}`} runSelected initialEvaluationId={reviewEvaluation.id} conversation={reviewConversation} evaluations={runEvaluations} checklist={selectedChecklist} onEvaluate={evaluate} busy={starting} onUpdated={refresh} reviewMode={reviewMode} reviewOnly /></> : <Empty title={runId ? 'В этом запуске нет завершённых оценок' : 'Выберите сохранённый запуск'} action={<a className="button secondary" href="#dialogs">К наборам и запускам</a>}>Апелляции доступны для завершённых оценок выбранного запуска.</Empty>)}
         </>}
       </main>
       <footer className="page-footer"><div><span className="footer-brand">CQA<span> / Freedom Broker</span></span><p>Каждый вывод — с доказательством.</p></div><div className="footer-meta"><span>Оценки сохраняются на сервере</span><span>RU / KZ / EN</span></div></footer>

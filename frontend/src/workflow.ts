@@ -18,11 +18,19 @@ export function paginate<T>(items: T[], requestedPage: number, pageSize: number)
   return { page, pages, items: items.slice((page - 1) * pageSize, page * pageSize) };
 }
 
+/** An absent selection has no results; never substitute another run's history. */
+export function attemptsForRun(evaluations: Evaluation[], runId: string): Evaluation[] {
+  return runId ? evaluations.filter(evaluation => evaluation.batch_id === runId) : [];
+}
+
 /** Provenance always comes from the saved evaluation, never a current selector. */
 export function evaluationProvenance(evaluation: Evaluation) {
+  const attemptedModels = [...new Set((evaluation.ai_execution?.attempts || [])
+    .filter(attempt => attempt.network_attempted === true && typeof attempt.model === 'string' && attempt.model.trim())
+    .map(attempt => attempt.model as string))];
   return {
     checklist: `${evaluation.checklist_snapshot.name} · v${evaluation.checklist_snapshot.version}`,
-    model: evaluation.status === 'failed' && evaluation.ai_execution?.models_used?.length ? `Попытки: ${evaluation.ai_execution.models_used.join(', ')}` : evaluation.ai_draft?.models_used?.length ? evaluation.ai_draft.models_used.join(', ') : evaluation.ai_draft?.model || 'Не записана',
+    model: evaluation.status === 'failed' ? attemptedModels.length ? `Попытки: ${attemptedModels.join(', ')}` : 'Сетевая попытка не записана' : evaluation.ai_draft?.models_used?.length ? evaluation.ai_draft.models_used.join(', ') : evaluation.ai_draft?.model || 'Не записана',
     prompt: evaluation.ai_draft?.prompt_version || 'Не записана',
     startedAt: evaluation.created_at,
     completedAt: evaluation.completed_at || null,

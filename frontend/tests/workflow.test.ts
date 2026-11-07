@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ascendingFinalScore, evaluationProvenance, paginate } from '../src/workflow.ts';
+import { ascendingFinalScore, attemptsForRun, evaluationProvenance, paginate } from '../src/workflow.ts';
 import type { Conversation, Evaluation } from '../src/types.ts';
 
 const conversation = (id: string) => ({ id }) as Conversation;
@@ -35,5 +35,29 @@ test('provenance reads the historical evaluation and keeps missing model explici
   assert.deepEqual(evaluationProvenance(saved), { checklist: 'Saved rules · v2', model: 'saved-model', prompt: 'saved-prompt', startedAt: '2026-01-01T00:00:00Z', completedAt: null });
   assert.equal(evaluationProvenance({ ...saved, ai_draft: null }).model, 'Не записана');
   assert.equal(evaluationProvenance({ ...saved, ai_draft: { ...saved.ai_draft!, models_used: ['model-a', 'model-b'] } }).model, 'model-a, model-b');
-  assert.equal(evaluationProvenance({ ...saved, status: 'failed', ai_draft: null, ai_execution: { models_used: ['attempted-model'] } }).model, 'Попытки: attempted-model');
+  assert.equal(evaluationProvenance({ ...saved, status: 'failed', ai_draft: null, ai_execution: { models_used: [], attempts: [{ model: 'attempted-model', network_attempted: true }] } }).model, 'Попытки: attempted-model');
+});
+
+test('missing run has no results and selected run retains only its own attempt history', () => {
+  const history = [
+    { id: 'older-run-success', conversation_id: 'same-dialog', batch_id: 'old', status: 'completed' },
+    { id: 'retry-source', conversation_id: 'same-dialog', batch_id: 'selected', status: 'failed' },
+    { id: 'retry-success', conversation_id: 'same-dialog', batch_id: 'selected', status: 'completed' },
+  ] as Evaluation[];
+  assert.deepEqual(attemptsForRun(history, ''), []);
+  assert.deepEqual(attemptsForRun(history, 'unknown'), []);
+  assert.deepEqual(attemptsForRun(history, 'selected').map(item => item.id), ['retry-source', 'retry-success']);
+  assert.deepEqual(attemptsForRun(history, 'selected').filter(item => item.status === 'completed').map(item => item.id), ['retry-success']);
+  assert.equal(history.length, 3);
+});
+
+test('failed provenance lists only actual network attempts, without reusing successful-model metadata', () => {
+  const failed = { status: 'failed', checklist_snapshot: { name: 'Saved', version: 1 }, created_at: '2026-01-01T00:00:00Z', ai_draft: null,
+    ai_execution: { models_used: ['not-an-attempt'], attempts: [
+      { model: 'unconfigured', network_attempted: false }, { model: 'primary', network_attempted: true },
+      { model: 'primary', network_attempted: true }, { model: 'backup', network_attempted: true },
+      { model: null, network_attempted: true }, { model: 'unknown-attempt' },
+    ] } } as Evaluation;
+  assert.equal(evaluationProvenance(failed).model, 'Попытки: primary, backup');
+  assert.equal(evaluationProvenance({ ...failed, ai_execution: { models_used: ['configured-only'] } }).model, 'Сетевая попытка не записана');
 });

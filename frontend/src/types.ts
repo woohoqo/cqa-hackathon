@@ -28,7 +28,7 @@ export interface Evaluation {
   id: string; batch_id: string; conversation_id: string; checklist_snapshot: ChecklistVersion;
   status: 'queued' | 'running' | 'completed' | 'failed'; created_at: string; updated_at: string;
   dataset_id?: string | null; attempt_number?: number; retry_of?: string | null; completed_at?: string | null;
-  ai_execution?: { models_used: string[]; [key: string]: unknown } | null;
+  ai_execution?: { models_used: string[]; attempts?: Array<{ model?: string | null; network_attempted?: boolean; [key: string]: unknown }>; [key: string]: unknown } | null;
   ai_draft: { criteria: CriterionResult[]; raw_response: string; provider: string; model: string; prompt_version: string; models_used?: string[] } | null;
   raw_response: string | null; original_score: ScoreSummary | null; final_score: ScoreSummary | null;
   final_criteria: CriterionResult[] | null; error: { code: string; message: string; retryable: boolean } | null;

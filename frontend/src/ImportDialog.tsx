@@ -54,6 +54,6 @@ export function ImportDialog({ onClose, onImported }: { onClose: () => void; onI
       <p className="import-access-note">Диалоги будут сохранены на сайте и доступны его участникам. Повторный импорт не создаёт дубли.</p>
     </div>}
     {error && <ErrorNotice message={error} />}
-    <div className="modal-actions"><button className="button secondary" onClick={onClose} disabled={busy}>Отмена</button><button className="button primary" disabled={busy || (mode === 'json' ? !text.trim() : !groupId.trim())} onClick={() => void submit()}>{busy ? 'Импортируем…' : 'Импортировать'}</button></div>
+    <div className="modal-actions import-actions"><button className="button secondary" onClick={onClose} disabled={busy}>Отмена</button><button className="button primary" disabled={busy || (mode === 'json' ? !text.trim() : !groupId.trim())} onClick={() => void submit()}>{busy ? 'Импортируем…' : 'Импортировать'}</button></div>
   </Modal>;
 }

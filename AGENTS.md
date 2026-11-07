@@ -14,8 +14,8 @@ AI entry point: `async evaluate_dialogue(conversation: Conversation, checklist: 
 Preserve `raw_response` exactly. Never fabricate a model result.
 Use `AIProviderError` for safe structured errors. No automatic gross-error zeroing.
 Only total is rounded; N/A removes criterion weight. Scales use their maximum, not weight.
-Official Student Guide and Chat Quality Checklist take priority when supplied.
-These PDFs were absent during foundation creation: do not invent an official checklist or DEV API format.
+Official Student Guide and Chat Quality Checklist take priority. Their initial configuration is
+in `backend/app/default_checklist.py`; implementation notes are in `contracts/official-requirements.md`.
 
 Never commit secrets, signed service URLs, `.env`, real transcripts, local databases, or source PDFs.
 Synthetic fixtures must be clearly labeled. No force push or deletion of teammates' branches.

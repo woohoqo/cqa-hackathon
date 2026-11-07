@@ -20,6 +20,7 @@
         },
         "reason": {
           "minLength": 1,
+          "pattern": "\\S",
           "title": "Reason",
           "type": "string"
         },
@@ -96,6 +97,7 @@
         },
         "reason": {
           "minLength": 1,
+          "pattern": "\\S",
           "title": "Reason",
           "type": "string"
         },
@@ -155,7 +157,6 @@
           "items": {
             "$ref": "#/$defs/Section"
           },
-          "minItems": 1,
           "title": "Sections",
           "type": "array"
         },
@@ -171,7 +172,6 @@
       "required": [
         "key",
         "name",
-        "sections",
         "criteria"
       ],
       "title": "ChecklistCreate",
@@ -200,7 +200,6 @@
           "items": {
             "$ref": "#/$defs/Section"
           },
-          "minItems": 1,
           "title": "Sections",
           "type": "array"
         },
@@ -232,7 +231,6 @@
       "required": [
         "key",
         "name",
-        "sections",
         "criteria",
         "id",
         "version"
@@ -350,6 +348,7 @@
           "type": "string"
         },
         "section_id": {
+          "default": "general",
           "maxLength": 200,
           "minLength": 1,
           "title": "Section Id",
@@ -400,7 +399,6 @@
       },
       "required": [
         "id",
-        "section_id",
         "title",
         "weight",
         "answer_type"
@@ -434,6 +432,7 @@
         },
         "reasoning": {
           "minLength": 1,
+          "pattern": "\\S",
           "title": "Reasoning",
           "type": "string"
         },
@@ -443,6 +442,7 @@
             "minLength": 1,
             "type": "string"
           },
+          "minItems": 1,
           "title": "Evidence Message Ids",
           "type": "array"
         },
@@ -464,7 +464,8 @@
       "required": [
         "criterion_id",
         "value",
-        "reasoning"
+        "reasoning",
+        "evidence_message_ids"
       ],
       "title": "CriterionResult",
       "type": "object"
@@ -523,6 +524,21 @@
       "title": "CriterionScore",
       "type": "object"
     },
+    "DevImportRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "group_id": {
+          "default": "DEV",
+          "maxLength": 100,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Group Id",
+          "type": "string"
+        }
+      },
+      "title": "DevImportRequest",
+      "type": "object"
+    },
     "ErrorDetail": {
       "additionalProperties": false,
       "properties": {
@@ -545,6 +561,19 @@
         "message"
       ],
       "title": "ErrorDetail",
+      "type": "object"
+    },
+    "ErrorResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ErrorDetail"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "ErrorResponse",
       "type": "object"
     },
     "Evaluation": {
@@ -919,6 +948,7 @@
         },
         "reason": {
           "minLength": 1,
+          "pattern": "\\S",
           "title": "Reason",
           "type": "string"
         },
@@ -979,6 +1009,7 @@
         },
         "reason": {
           "minLength": 1,
+          "pattern": "\\S",
           "title": "Reason",
           "type": "string"
         },

@@ -1,0 +1,716 @@
+{
+  "notice": "Only synthetic documentation examples; no model call or real records.",
+  "conversation_request": {
+    "external_id": "synthetic-001",
+    "source": "synthetic-example",
+    "messages": [
+      {
+        "id": "m1",
+        "role": "client",
+        "text": "Синтетический вопрос для примера API.",
+        "timestamp": "00:00"
+      },
+      {
+        "id": "m2",
+        "role": "operator",
+        "text": "Синтетический ответ для примера API.",
+        "timestamp": "00:02"
+      }
+    ],
+    "metadata": {}
+  },
+  "conversation_response": {
+    "external_id": "synthetic-001",
+    "source": "synthetic-example",
+    "messages": [
+      {
+        "id": "m1",
+        "role": "client",
+        "text": "Синтетический вопрос для примера API.",
+        "timestamp": "00:00"
+      },
+      {
+        "id": "m2",
+        "role": "operator",
+        "text": "Синтетический ответ для примера API.",
+        "timestamp": "00:02"
+      }
+    ],
+    "metadata": {},
+    "id": "synthetic-conversation",
+    "created_at": "2026-11-07T00:00:00Z"
+  },
+  "checklist_request": {
+    "key": "freedom-cqa",
+    "name": "Чек-лист качества чатов Freedom Broker",
+    "description": "Оценивается оператор. Реплики bot/system служат контекстом. Один чек-лист для RU, KZ и EN. Порог первой реакции в 3 минуты, теги и вложения в оценку не входят. По каждому критерию нужны короткое обоснование и ссылка на сообщение. Для пропущенного действия укажите место, где оно ожидалось; для N/A объясните выполненное условие. Консультация и ведение диалога оцениваются независимо: ясный ответ на один из двух важных вопросов может получить высокий балл за ведение и частичный за консультацию.",
+    "sections": [
+      {
+        "id": "start",
+        "title": "НАЧАЛО И ПОНИМАНИЕ ЗАПРОСА"
+      },
+      {
+        "id": "solution",
+        "title": "БЕЗОПАСНОСТЬ И РЕШЕНИЕ"
+      },
+      {
+        "id": "dialogue",
+        "title": "ВЕДЕНИЕ И ЗАВЕРШЕНИЕ ДИАЛОГА"
+      },
+      {
+        "id": "violations",
+        "title": "ГРУБЫЕ НАРУШЕНИЯ"
+      }
+    ],
+    "criteria": [
+      {
+        "id": "1",
+        "section_id": "start",
+        "title": "Установление контакта",
+        "description": "Да — оператор поздоровался на языке клиента и представился в первом ответе.",
+        "weight": 10.0,
+        "answer_type": "boolean",
+        "scale": [],
+        "allow_na": false,
+        "na_condition": null
+      },
+      {
+        "id": "2",
+        "section_id": "start",
+        "title": "Выявление потребности",
+        "description": "Да — оператор учёл известные детали и уточнил недостающее до ответа.",
+        "weight": 15.0,
+        "answer_type": "boolean",
+        "scale": [],
+        "allow_na": true,
+        "na_condition": "данных для ответа хватало с самого начала"
+      },
+      {
+        "id": "3",
+        "section_id": "solution",
+        "title": "Идентификация",
+        "description": "Да — проверка личности подтверждена до раскрытия данных или защищённого действия. Общий вопрос о тарифах не требует идентификации. Если проверка личности требовалась перед защищённым действием и не подтверждена в чате, ставьте Нет.",
+        "weight": 20.0,
+        "answer_type": "boolean",
+        "scale": [],
+        "allow_na": true,
+        "na_condition": "запрос не требовал идентификации"
+      },
+      {
+        "id": "4",
+        "section_id": "solution",
+        "title": "Корректная и полная консультация",
+        "description": "Оцените ответ или следующий шаг по шкале.",
+        "weight": 20.0,
+        "answer_type": "scale",
+        "scale": [
+          {
+            "value": 0.0,
+            "label": "0",
+            "description": "Ответа по существу нет или ключевая рекомендация ошибочна."
+          },
+          {
+            "value": 5.0,
+            "label": "5",
+            "description": "Есть общая подсказка, но клиенту всё ещё непонятно, как действовать."
+          },
+          {
+            "value": 10.0,
+            "label": "10",
+            "description": "Часть запроса закрыта, существенный вопрос остался открытым."
+          },
+          {
+            "value": 15.0,
+            "label": "15",
+            "description": "Основной вопрос решён, пропущена второстепенная деталь."
+          },
+          {
+            "value": 20.0,
+            "label": "20",
+            "description": "Все существенные вопросы закрыты или дан корректный следующий шаг."
+          }
+        ],
+        "allow_na": true,
+        "na_condition": "чат закончился до того, как клиент сформулировал запрос"
+      },
+      {
+        "id": "5",
+        "section_id": "dialogue",
+        "title": "Эмпатия и клиентоориентированность",
+        "description": "Да — оператор вежлив и, если клиент выразил недовольство или описал неудобство, отреагировал на конкретную проблему.",
+        "weight": 15.0,
+        "answer_type": "boolean",
+        "scale": [],
+        "allow_na": false,
+        "na_condition": null
+      },
+      {
+        "id": "6",
+        "section_id": "dialogue",
+        "title": "Управление диалогом, скорость и грамотность",
+        "description": "Оцените ясность, порядок ответов и предупреждение об ожидании по шкале.",
+        "weight": 15.0,
+        "answer_type": "scale",
+        "scale": [
+          {
+            "value": 0.0,
+            "label": "0",
+            "description": "Из-за бессвязных или противоречивых реплик ход диалога непонятен."
+          },
+          {
+            "value": 4.0,
+            "label": "4",
+            "description": "Клиенту приходится переспрашивать из-за формулировок или порядка ответов."
+          },
+          {
+            "value": 7.0,
+            "label": "7",
+            "description": "Один заметный сбой, но клиент может понять ответ и продолжить."
+          },
+          {
+            "value": 10.0,
+            "label": "10",
+            "description": "Ответы ясные и связные. Если было явное ожидание, оператор предупредил."
+          }
+        ],
+        "allow_na": false,
+        "na_condition": null
+      },
+      {
+        "id": "7",
+        "section_id": "dialogue",
+        "title": "Завершение",
+        "description": "Да — оператор подвёл итог или предложил дальнейшую помощь и попрощался.",
+        "weight": 5.0,
+        "answer_type": "boolean",
+        "scale": [],
+        "allow_na": true,
+        "na_condition": "чат оборвался до возможности его завершить"
+      },
+      {
+        "id": "8",
+        "section_id": "violations",
+        "title": "Грубые ошибки",
+        "description": "Да — выявлено оскорбление клиента, предложение платной услуги в обход компании или раскрытие конфиденциальной информации. Нет — ни одно из трёх не выявлено. Обход компании: оператор предлагает перевести деньги ему лично для инвестирования или просит личный номер клиента, чтобы оказать платную консультацию в частном порядке. Достаточно самого предложения; согласие клиента или перевод денег не требуются.",
+        "weight": 0.0,
+        "answer_type": "flag",
+        "scale": [],
+        "allow_na": false,
+        "na_condition": null
+      }
+    ]
+  },
+  "evaluation_request": {
+    "conversation_ids": [
+      "synthetic-conversation"
+    ],
+    "checklist_id": "synthetic-checklist-v1"
+  },
+  "evaluation_response": {
+    "id": "synthetic-evaluation",
+    "batch_id": "synthetic-batch",
+    "conversation_id": "synthetic-conversation",
+    "checklist_snapshot": {
+      "key": "freedom-cqa",
+      "name": "Чек-лист качества чатов Freedom Broker",
+      "description": "Оценивается оператор. Реплики bot/system служат контекстом. Один чек-лист для RU, KZ и EN. Порог первой реакции в 3 минуты, теги и вложения в оценку не входят. По каждому критерию нужны короткое обоснование и ссылка на сообщение. Для пропущенного действия укажите место, где оно ожидалось; для N/A объясните выполненное условие. Консультация и ведение диалога оцениваются независимо: ясный ответ на один из двух важных вопросов может получить высокий балл за ведение и частичный за консультацию.",
+      "sections": [
+        {
+          "id": "start",
+          "title": "НАЧАЛО И ПОНИМАНИЕ ЗАПРОСА"
+        },
+        {
+          "id": "solution",
+          "title": "БЕЗОПАСНОСТЬ И РЕШЕНИЕ"
+        },
+        {
+          "id": "dialogue",
+          "title": "ВЕДЕНИЕ И ЗАВЕРШЕНИЕ ДИАЛОГА"
+        },
+        {
+          "id": "violations",
+          "title": "ГРУБЫЕ НАРУШЕНИЯ"
+        }
+      ],
+      "criteria": [
+        {
+          "id": "1",
+          "section_id": "start",
+          "title": "Установление контакта",
+          "description": "Да — оператор поздоровался на языке клиента и представился в первом ответе.",
+          "weight": 10.0,
+          "answer_type": "boolean",
+          "scale": [],
+          "allow_na": false,
+          "na_condition": null
+        },
+        {
+          "id": "2",
+          "section_id": "start",
+          "title": "Выявление потребности",
+          "description": "Да — оператор учёл известные детали и уточнил недостающее до ответа.",
+          "weight": 15.0,
+          "answer_type": "boolean",
+          "scale": [],
+          "allow_na": true,
+          "na_condition": "данных для ответа хватало с самого начала"
+        },
+        {
+          "id": "3",
+          "section_id": "solution",
+          "title": "Идентификация",
+          "description": "Да — проверка личности подтверждена до раскрытия данных или защищённого действия. Общий вопрос о тарифах не требует идентификации. Если проверка личности требовалась перед защищённым действием и не подтверждена в чате, ставьте Нет.",
+          "weight": 20.0,
+          "answer_type": "boolean",
+          "scale": [],
+          "allow_na": true,
+          "na_condition": "запрос не требовал идентификации"
+        },
+        {
+          "id": "4",
+          "section_id": "solution",
+          "title": "Корректная и полная консультация",
+          "description": "Оцените ответ или следующий шаг по шкале.",
+          "weight": 20.0,
+          "answer_type": "scale",
+          "scale": [
+            {
+              "value": 0.0,
+              "label": "0",
+              "description": "Ответа по существу нет или ключевая рекомендация ошибочна."
+            },
+            {
+              "value": 5.0,
+              "label": "5",
+              "description": "Есть общая подсказка, но клиенту всё ещё непонятно, как действовать."
+            },
+            {
+              "value": 10.0,
+              "label": "10",
+              "description": "Часть запроса закрыта, существенный вопрос остался открытым."
+            },
+            {
+              "value": 15.0,
+              "label": "15",
+              "description": "Основной вопрос решён, пропущена второстепенная деталь."
+            },
+            {
+              "value": 20.0,
+              "label": "20",
+              "description": "Все существенные вопросы закрыты или дан корректный следующий шаг."
+            }
+          ],
+          "allow_na": true,
+          "na_condition": "чат закончился до того, как клиент сформулировал запрос"
+        },
+        {
+          "id": "5",
+          "section_id": "dialogue",
+          "title": "Эмпатия и клиентоориентированность",
+          "description": "Да — оператор вежлив и, если клиент выразил недовольство или описал неудобство, отреагировал на конкретную проблему.",
+          "weight": 15.0,
+          "answer_type": "boolean",
+          "scale": [],
+          "allow_na": false,
+          "na_condition": null
+        },
+        {
+          "id": "6",
+          "section_id": "dialogue",
+          "title": "Управление диалогом, скорость и грамотность",
+          "description": "Оцените ясность, порядок ответов и предупреждение об ожидании по шкале.",
+          "weight": 15.0,
+          "answer_type": "scale",
+          "scale": [
+            {
+              "value": 0.0,
+              "label": "0",
+              "description": "Из-за бессвязных или противоречивых реплик ход диалога непонятен."
+            },
+            {
+              "value": 4.0,
+              "label": "4",
+              "description": "Клиенту приходится переспрашивать из-за формулировок или порядка ответов."
+            },
+            {
+              "value": 7.0,
+              "label": "7",
+              "description": "Один заметный сбой, но клиент может понять ответ и продолжить."
+            },
+            {
+              "value": 10.0,
+              "label": "10",
+              "description": "Ответы ясные и связные. Если было явное ожидание, оператор предупредил."
+            }
+          ],
+          "allow_na": false,
+          "na_condition": null
+        },
+        {
+          "id": "7",
+          "section_id": "dialogue",
+          "title": "Завершение",
+          "description": "Да — оператор подвёл итог или предложил дальнейшую помощь и попрощался.",
+          "weight": 5.0,
+          "answer_type": "boolean",
+          "scale": [],
+          "allow_na": true,
+          "na_condition": "чат оборвался до возможности его завершить"
+        },
+        {
+          "id": "8",
+          "section_id": "violations",
+          "title": "Грубые ошибки",
+          "description": "Да — выявлено оскорбление клиента, предложение платной услуги в обход компании или раскрытие конфиденциальной информации. Нет — ни одно из трёх не выявлено. Обход компании: оператор предлагает перевести деньги ему лично для инвестирования или просит личный номер клиента, чтобы оказать платную консультацию в частном порядке. Достаточно самого предложения; согласие клиента или перевод денег не требуются.",
+          "weight": 0.0,
+          "answer_type": "flag",
+          "scale": [],
+          "allow_na": false,
+          "na_condition": null
+        }
+      ],
+      "id": "synthetic-checklist-v1",
+      "version": 1,
+      "created_at": "2026-11-07T00:00:00Z"
+    },
+    "status": "completed",
+    "created_at": "2026-11-07T00:00:00Z",
+    "updated_at": "2026-11-07T00:00:00Z",
+    "ai_draft": {
+      "criteria": [
+        {
+          "criterion_id": "1",
+          "value": true,
+          "reasoning": "Синтетический пример формата, не оценка модели.",
+          "evidence_message_ids": [
+            "m2"
+          ],
+          "confidence": null
+        },
+        {
+          "criterion_id": "2",
+          "value": "N/A",
+          "reasoning": "Синтетический пример формата, не оценка модели.",
+          "evidence_message_ids": [
+            "m2"
+          ],
+          "confidence": null
+        },
+        {
+          "criterion_id": "3",
+          "value": "N/A",
+          "reasoning": "Синтетический пример формата, не оценка модели.",
+          "evidence_message_ids": [
+            "m2"
+          ],
+          "confidence": null
+        },
+        {
+          "criterion_id": "4",
+          "value": 15.0,
+          "reasoning": "Синтетический пример формата, не оценка модели.",
+          "evidence_message_ids": [
+            "m2"
+          ],
+          "confidence": null
+        },
+        {
+          "criterion_id": "5",
+          "value": true,
+          "reasoning": "Синтетический пример формата, не оценка модели.",
+          "evidence_message_ids": [
+            "m2"
+          ],
+          "confidence": null
+        },
+        {
+          "criterion_id": "6",
+          "value": 7.0,
+          "reasoning": "Синтетический пример формата, не оценка модели.",
+          "evidence_message_ids": [
+            "m2"
+          ],
+          "confidence": null
+        },
+        {
+          "criterion_id": "7",
+          "value": true,
+          "reasoning": "Синтетический пример формата, не оценка модели.",
+          "evidence_message_ids": [
+            "m2"
+          ],
+          "confidence": null
+        },
+        {
+          "criterion_id": "8",
+          "value": false,
+          "reasoning": "Синтетический пример формата, не оценка модели.",
+          "evidence_message_ids": [
+            "m2"
+          ],
+          "confidence": null
+        }
+      ],
+      "raw_response": "{\"synthetic_example_only\": true, \"criteria\": [{\"criterion_id\": \"1\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"2\", \"value\": \"N/A\", \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"3\", \"value\": \"N/A\", \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"4\", \"value\": 15.0, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"5\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"6\", \"value\": 7.0, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"7\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"8\", \"value\": false, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}]}",
+      "provider": "synthetic-example-only",
+      "model": "no-model-called",
+      "prompt_version": "docs-v1"
+    },
+    "raw_response": "{\"synthetic_example_only\": true, \"criteria\": [{\"criterion_id\": \"1\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"2\", \"value\": \"N/A\", \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"3\", \"value\": \"N/A\", \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"4\", \"value\": 15.0, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"5\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"6\", \"value\": 7.0, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"7\", \"value\": true, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}, {\"criterion_id\": \"8\", \"value\": false, \"reasoning\": \"Синтетический пример формата, не оценка модели.\", \"evidence_message_ids\": [\"m2\"], \"confidence\": null}]}",
+    "original_score": {
+      "criteria": [
+        {
+          "criterion_id": "1",
+          "value": true,
+          "applicable": true,
+          "weight": 10.0,
+          "earned_points": 10.0
+        },
+        {
+          "criterion_id": "2",
+          "value": "N/A",
+          "applicable": false,
+          "weight": 15.0,
+          "earned_points": null
+        },
+        {
+          "criterion_id": "3",
+          "value": "N/A",
+          "applicable": false,
+          "weight": 20.0,
+          "earned_points": null
+        },
+        {
+          "criterion_id": "4",
+          "value": 15.0,
+          "applicable": true,
+          "weight": 20.0,
+          "earned_points": 15.0
+        },
+        {
+          "criterion_id": "5",
+          "value": true,
+          "applicable": true,
+          "weight": 15.0,
+          "earned_points": 15.0
+        },
+        {
+          "criterion_id": "6",
+          "value": 7.0,
+          "applicable": true,
+          "weight": 15.0,
+          "earned_points": 10.5
+        },
+        {
+          "criterion_id": "7",
+          "value": true,
+          "applicable": true,
+          "weight": 5.0,
+          "earned_points": 5.0
+        },
+        {
+          "criterion_id": "8",
+          "value": false,
+          "applicable": true,
+          "weight": 0.0,
+          "earned_points": null
+        }
+      ],
+      "sections": [
+        {
+          "section_id": "start",
+          "applicable_weight": 10.0,
+          "earned_points": 10.0,
+          "score": 100.0
+        },
+        {
+          "section_id": "solution",
+          "applicable_weight": 20.0,
+          "earned_points": 15.0,
+          "score": 75.0
+        },
+        {
+          "section_id": "dialogue",
+          "applicable_weight": 35.0,
+          "earned_points": 30.5,
+          "score": 87.14285714285714
+        },
+        {
+          "section_id": "violations",
+          "applicable_weight": 0.0,
+          "earned_points": 0.0,
+          "score": null
+        }
+      ],
+      "applicable_weight": 65.0,
+      "earned_points": 55.5,
+      "total": 85.38,
+      "gross_error": false
+    },
+    "final_score": {
+      "criteria": [
+        {
+          "criterion_id": "1",
+          "value": true,
+          "applicable": true,
+          "weight": 10.0,
+          "earned_points": 10.0
+        },
+        {
+          "criterion_id": "2",
+          "value": "N/A",
+          "applicable": false,
+          "weight": 15.0,
+          "earned_points": null
+        },
+        {
+          "criterion_id": "3",
+          "value": "N/A",
+          "applicable": false,
+          "weight": 20.0,
+          "earned_points": null
+        },
+        {
+          "criterion_id": "4",
+          "value": 15.0,
+          "applicable": true,
+          "weight": 20.0,
+          "earned_points": 15.0
+        },
+        {
+          "criterion_id": "5",
+          "value": true,
+          "applicable": true,
+          "weight": 15.0,
+          "earned_points": 15.0
+        },
+        {
+          "criterion_id": "6",
+          "value": 7.0,
+          "applicable": true,
+          "weight": 15.0,
+          "earned_points": 10.5
+        },
+        {
+          "criterion_id": "7",
+          "value": true,
+          "applicable": true,
+          "weight": 5.0,
+          "earned_points": 5.0
+        },
+        {
+          "criterion_id": "8",
+          "value": false,
+          "applicable": true,
+          "weight": 0.0,
+          "earned_points": null
+        }
+      ],
+      "sections": [
+        {
+          "section_id": "start",
+          "applicable_weight": 10.0,
+          "earned_points": 10.0,
+          "score": 100.0
+        },
+        {
+          "section_id": "solution",
+          "applicable_weight": 20.0,
+          "earned_points": 15.0,
+          "score": 75.0
+        },
+        {
+          "section_id": "dialogue",
+          "applicable_weight": 35.0,
+          "earned_points": 30.5,
+          "score": 87.14285714285714
+        },
+        {
+          "section_id": "violations",
+          "applicable_weight": 0.0,
+          "earned_points": 0.0,
+          "score": null
+        }
+      ],
+      "applicable_weight": 65.0,
+      "earned_points": 55.5,
+      "total": 85.38,
+      "gross_error": false
+    },
+    "final_criteria": [
+      {
+        "criterion_id": "1",
+        "value": true,
+        "reasoning": "Синтетический пример формата, не оценка модели.",
+        "evidence_message_ids": [
+          "m2"
+        ],
+        "confidence": null
+      },
+      {
+        "criterion_id": "2",
+        "value": "N/A",
+        "reasoning": "Синтетический пример формата, не оценка модели.",
+        "evidence_message_ids": [
+          "m2"
+        ],
+        "confidence": null
+      },
+      {
+        "criterion_id": "3",
+        "value": "N/A",
+        "reasoning": "Синтетический пример формата, не оценка модели.",
+        "evidence_message_ids": [
+          "m2"
+        ],
+        "confidence": null
+      },
+      {
+        "criterion_id": "4",
+        "value": 15.0,
+        "reasoning": "Синтетический пример формата, не оценка модели.",
+        "evidence_message_ids": [
+          "m2"
+        ],
+        "confidence": null
+      },
+      {
+        "criterion_id": "5",
+        "value": true,
+        "reasoning": "Синтетический пример формата, не оценка модели.",
+        "evidence_message_ids": [
+          "m2"
+        ],
+        "confidence": null
+      },
+      {
+        "criterion_id": "6",
+        "value": 7.0,
+        "reasoning": "Синтетический пример формата, не оценка модели.",
+        "evidence_message_ids": [
+          "m2"
+        ],
+        "confidence": null
+      },
+      {
+        "criterion_id": "7",
+        "value": true,
+        "reasoning": "Синтетический пример формата, не оценка модели.",
+        "evidence_message_ids": [
+          "m2"
+        ],
+        "confidence": null
+      },
+      {
+        "criterion_id": "8",
+        "value": false,
+        "reasoning": "Синтетический пример формата, не оценка модели.",
+        "evidence_message_ids": [
+          "m2"
+        ],
+        "confidence": null
+      }
+    ],
+    "error": null
+  }
+}

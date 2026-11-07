@@ -50,7 +50,10 @@ inheritance are disabled; outbound access to `generativelanguage.googleapis.com`
 
 ### Free-tier profile
 
-Copy `backend/app/ai/free-tier.env.example` to the root `.env`, then set `GEMINI_API_KEY`.
+Run `python -m scripts.init_env` from the repository root, then set `GEMINI_API_KEY`
+in that checkout's `.env` once. This command never replaces an existing `.env`.
+Do not copy a sample over an existing secret file. If applying a different profile,
+edit only the relevant non-secret settings and keep the existing key and DEV URL.
 It selects `gemini-3.5-flash-lite`, minimal thinking, backend concurrency 1, at most two
 attempts and 15 seconds between request starts. This is conservative application pacing,
 NOT a claim that Google's quota is 4 RPM. Check the project's active RPM/input TPM/RPD

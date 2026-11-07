@@ -18,9 +18,7 @@ git clone https://github.com/woohoqo/cqa-hackathon.git
 cd cqa-hackathon
 python -m venv .venv
 .venv\Scripts\python -m pip install -c requirements.lock -e ".[dev]"
-if (-not (Test-Path -LiteralPath .env)) {
-    Copy-Item -LiteralPath .env.example -Destination .env
-}
+python -m scripts.init_env
 pnpm --dir frontend install --frozen-lockfile
 pnpm --dir frontend build
 ```
@@ -37,8 +35,16 @@ pnpm --dir frontend build
 
 Откройте **http://127.0.0.1:8000**. Backend обслуживает `frontend/dist`; сборка должна
 существовать до запуска сервера. API: http://127.0.0.1:8000/docs; health: `/health`.
-На macOS/Linux используйте `.venv/bin/python` и `cp .env.example .env`, только если файла ещё нет.
+На macOS/Linux используйте `.venv/bin/python`; `python -m scripts.init_env` работает одинаково на всех ОС.
 Все команды выполняются из корня проекта.
+
+Ключ вводится один раз в каждой локальной копии. Повторный `scripts.init_env` сохраняет
+существующий `.env` без изменений. Не повторяйте `Copy-Item .env.example .env` или
+`cp .env.example .env`: эти команды могут затереть ключ пустым шаблоном.
+`.env` намеренно не передаётся через Git: у каждого clone/worktree свой файл.
+Если ключ «пропал», проверьте, из какой копии запускается backend, и нет ли пустой переменной
+`GEMINI_API_KEY` в окружении процесса. Само приложение `.env` только читает.
+На общем хостинге ключ задаётся один раз в серверных секретах; посетителям сайта он не нужен.
 
 Используйте один процесс Uvicorn, без `--workers`. SQLite и очередь находятся в игнорируемой
 папке `data/`. Ожидающие задания продолжаются после перезапуска; прерванные выполнявшиеся

@@ -364,7 +364,8 @@ def _validate_ok(row, conversation, path, report):
         indexed[criterion] = item
         value = item.get("value")
         valid_value = ((value is None and criterion in _NULLABLE)
-                       or (criterion in _SCALES and type(value) is int and value in _SCALES[criterion])
+                       or (criterion in _SCALES and type(value) in (int, float)
+                           and value in _SCALES[criterion])
                        or (criterion not in _SCALES and type(value) is bool))
         if not valid_value:
             _issue(report, "invalid_criterion_value", item_path + ".value", "Недопустимый тип, N/A или ступень официальной шкалы.", cid)
@@ -501,7 +502,7 @@ def official_results_schema() -> dict:
 
     criteria = []
     for criterion in OFFICIAL_IDS:
-        value = ({"type": "integer", "enum": sorted(_SCALES[criterion])}
+        value = ({"type": "number", "enum": sorted(_SCALES[criterion])}
                  if criterion in _SCALES else {"type": "boolean"})
         if criterion in _NULLABLE:
             value = {"anyOf": [value, {"type": "null"}]}

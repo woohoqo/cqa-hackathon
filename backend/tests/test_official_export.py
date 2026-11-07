@@ -305,13 +305,22 @@ def test_success_final_model_must_be_in_recorded_model_list(case):
 
 @pytest.mark.parametrize("index,value", [
     (0, "true"), (0, 1), (0, 1.0), (0, None), (0, "N/A"),
-    (1, "N/A"), (2, 0), (3, 15.0), (3, True), (3, 7), (3, "15"),
-    (4, None), (5, None), (5, 15), (5, 7.0), (5, False), (7, None), (7, 0),
+    (1, "N/A"), (2, 0), (3, True), (3, 7), (3, "15"),
+    (4, None), (5, None), (5, 15), (5, False), (7, None), (7, 0),
+    (3, float("inf")), (3, float("nan")), (5, 7.01),
 ])
 def test_official_value_types_and_numeric_steps_are_strict(case, index, value):
     payload = build(case)
     payload["results"][0]["criteria"][index]["value"] = value
     assert "invalid_criterion_value" in errors(validate(payload, case))
+
+
+def test_numeric_scale_steps_accept_equivalent_json_float_values(case):
+    payload = build(case)
+    payload["results"][0]["criteria"][3]["value"] = 15.0
+    payload["results"][0]["criteria"][5]["value"] = 7.0
+    assert validate(payload, case, evaluations=[case[1]])["valid"]
+    assert validate(json.dumps(payload), case, evaluations=[case[1]])["valid"]
 
 
 @pytest.mark.parametrize("evidence,code", [
@@ -437,7 +446,7 @@ def test_generated_schema_shares_official_codes_and_has_no_internal_fields():
     success, failure = schema["properties"]["results"]["items"]["oneOf"]
     definitions = success["properties"]["criteria"]["items"]["oneOf"]
     assert [item["properties"]["criterion_id"]["const"] for item in definitions] == list(OFFICIAL_IDS)
-    assert definitions[5]["properties"]["value"] == {"type": "integer", "enum": [0, 4, 7, 10]}
+    assert definitions[5]["properties"]["value"] == {"type": "number", "enum": [0, 4, 7, 10]}
     assert len(success["properties"]["criteria"]["allOf"]) == 8
     assert failure["properties"]["score"] == {"type": "null"}
     assert "raw_response" not in json.dumps(schema)

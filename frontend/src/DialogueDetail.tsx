@@ -35,8 +35,8 @@ export function DialogueDetail({ conversation, evaluations, checklist, onEvaluat
   const audio = safeAudioUrl(conversation.metadata.audio_url);
   const isRunning = history.some(pending);
   const openAppeal = (id: string) => { setCriterionId(id); window.setTimeout(() => appealRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0); };
-  return <>
-    <div className="detail-heading"><div><a className="back-link" href="#dialogs">← Все диалоги</a><h1>{conversation.external_id || conversation.id}</h1><div className="detail-meta"><span className="language-badge">{language(conversation)}</span><span>{channelLabel(channel(conversation))}</span><span>Сообщений: {conversation.messages.length}</span><Status status={evaluation?.status || 'none'} /></div></div>{!reviewOnly && <div className="detail-actions"><span className="help">Новая оценка: {checklist ? `${checklist.name} · v${checklist.version}` : 'выберите чек-лист в списке'}</span><button className="button primary" disabled={busy || isRunning || !checklist} onClick={() => { void onEvaluate([conversation.id]).then(() => setEvaluationId('')); }}><Icon name="play" size={17} />{busy ? 'Запускаем…' : evaluation ? 'Оценить повторно' : 'Оценить диалог'}</button></div>}</div>
+  return <div className={`dialogue-detail ${reviewOnly ? 'is-review' : ''}`}>
+    <div className="detail-heading"><div><a className="back-link" href="#dialogs">← Все диалоги</a><div className="eyebrow">{reviewOnly ? 'ПРОВЕРКА ДИАЛОГА' : 'АНАЛИЗ / ИСХОДНЫЙ ДИАЛОГ'}</div><h1>{conversation.external_id || conversation.id}</h1><div className="detail-meta"><span className="language-badge">{language(conversation)}</span><span>{channelLabel(channel(conversation))}</span><span>Сообщений: {conversation.messages.length}</span><Status status={evaluation?.status || 'none'} /></div></div>{!reviewOnly && <div className="detail-actions"><span className="help">Новая оценка: {checklist ? `${checklist.name} · v${checklist.version}` : 'выберите чек-лист в списке'}</span><button className="button primary" disabled={busy || isRunning || !checklist} onClick={() => { void onEvaluate([conversation.id]).then(() => setEvaluationId('')); }}><Icon name="play" size={17} />{busy ? 'Запускаем…' : evaluation ? 'Оценить повторно' : 'Оценить диалог'}</button></div>}</div>
     {conversation.metadata.synthetic === true && <div className="notice">Синтетические данные для проверки интерфейса.</div>}
     {evaluation?.ai_draft?.provider === 'synthetic-ui-test' && <div className="notice">Синтетический тестовый ответ. Это не результат настоящей модели.</div>}
     <div className="detail-grid">
@@ -72,5 +72,5 @@ export function DialogueDetail({ conversation, evaluations, checklist, onEvaluat
       </section>
     </div>
     {!reviewOnly && evaluation?.status === 'completed' && <section ref={appealRef} className="appeals-section" aria-label="Апелляции по оценке"><AppealsPanel key={evaluation.id} evaluation={evaluation} conversation={conversation} onUpdated={onUpdated} onEvidence={reveal} reviewMode={reviewMode} initialCriterionId={criterionId} onCriterionSelect={setCriterionId} /></section>}
-  </>;
+  </div>;
 }

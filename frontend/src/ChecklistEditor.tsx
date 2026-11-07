@@ -231,6 +231,7 @@ export function ChecklistEditor({ checklists, selectedId, onSelect, onSave, onUs
       <form onSubmit={save} noValidate>
         <fieldset className="checklist-form-fieldset" disabled={busy}>
           <div className="panel checklist-settings">
+            <div className="checklist-config-heading"><span className="checklist-eyebrow">Конфигурация</span><h2>Настройки<br />чек-листа</h2></div>
             <div className="field"><label htmlFor="checklist-name">Название чек-листа</label><input id="checklist-name" value={draft.name} onChange={(event) => update({ ...draft, name: event.target.value })} placeholder="Например, качество консультации" required /></div>
             <div className="field"><label htmlFor="checklist-description">Описание</label><textarea id="checklist-description" rows={2} value={draft.description} onChange={(event) => update({ ...draft, description: event.target.value })} placeholder="Когда и для каких диалогов применяется чек-лист" /></div>
             <details className="checklist-sections">
@@ -248,7 +249,7 @@ export function ChecklistEditor({ checklists, selectedId, onSelect, onSave, onUs
 
           <div className="checklist-workspace">
             <aside className="panel checklist-outline" aria-label="Список критериев">
-              <div className="checklist-outline-heading"><h2>Критерии</h2><span>{draft.criteria.length}</span></div>
+              <div className="checklist-outline-heading"><div><span className="checklist-eyebrow">Индекс правил</span><h2>Критерии <span>{draft.criteria.length}</span></h2></div><button type="button" className="button secondary checklist-add" onClick={addCriterion}>+ Добавить критерий</button></div>
               <p className="checklist-hint">Выберите критерий, чтобы изменить правило оценки.</p>
               <div className="checklist-criterion-list">
                 {draft.criteria.map((criterion, index) => <button key={criterion.id} type="button" aria-pressed={criterion.id === activeId} className={`checklist-criterion-link ${criterion.id === activeId ? 'is-active' : ''}`} onClick={() => setActiveId(criterion.id)}>
@@ -256,7 +257,6 @@ export function ChecklistEditor({ checklists, selectedId, onSelect, onSave, onUs
                   <span><strong>{criterion.title || 'Новый критерий'}</strong><small>{answerLabels[criterion.answer_type]}{criterion.answer_type !== 'flag' ? ` · вес ${criterion.weight || '—'}` : ''}</small></span>
                 </button>)}
               </div>
-              <button type="button" className="button secondary checklist-add" onClick={addCriterion}>+ Добавить критерий</button>
             </aside>
 
             {active ? <article className="panel checklist-criterion-form" key={active.id}>

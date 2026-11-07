@@ -308,31 +308,35 @@ export function AppealsPanel({ evaluation, conversation, onUpdated, onEvidence, 
     {loading && <p className="appeals-muted" role="status">Загружаем обращения и историю решений…</p>}
     {!reviewMode && <form className="panel appeals-new" onSubmit={createAppeal}>
       <h3>Оспорить критерий</h3>
-      <label className="field" htmlFor={`${formId}-criterion`}>Спорный критерий
-        <select id={`${formId}-criterion`} value={criterionId} disabled={busy !== null || loading}
-          onChange={(event) => { setCriterionId(event.target.value); onCriterionSelect?.(event.target.value); }}>
-          {evaluation.checklist_snapshot.criteria.map((criterion) => <option key={criterion.id} value={criterion.id}>{criterion.title}</option>)}
-        </select>
-      </label>
-      {selectedOriginal && <div className="appeals-original-preview">
-        <span className="appeals-caption">Исходная автоматическая оценка</span>
-        <strong>{answerLabel(selectedOriginal.value)}</strong>
-        <p>{selectedOriginal.reasoning}</p>
-        <EvidenceLinks result={selectedOriginal} conversation={conversation} onEvidence={onEvidence} />
-      </div>}
-      {existingAppeal && <p className="appeals-note">По этому критерию уже есть открытая апелляция. Дождитесь решения проверяющего.</p>}
-      <label className="field" htmlFor={`${formId}-author`}>Автор обращения
-        <input id={`${formId}-author`} required value={author} disabled={busy !== null} autoComplete="name"
-          onChange={(event) => setAuthor(event.target.value)} />
-      </label>
-      <label className="field" htmlFor={`${formId}-comment`}>Комментарий
-        <textarea id={`${formId}-comment`} required rows={3} value={reason} disabled={busy !== null}
-          placeholder="С чем вы не согласны? Укажите реплику или обстоятельство, которое нужно проверить."
-          onChange={(event) => setReason(event.target.value)} />
-      </label>
-      <button type="submit" className="button primary" disabled={busy !== null || loading || existingAppeal || !selectedCriterion}>
-        {busy === 'new' ? 'Сохраняем…' : 'Сохранить апелляцию'}
-      </button>
+      <div className="appeals-new-grid">
+        <div className="appeals-new-fields">
+          <label className="field" htmlFor={`${formId}-criterion`}>Спорный критерий
+            <select id={`${formId}-criterion`} value={criterionId} disabled={busy !== null || loading}
+              onChange={(event) => { setCriterionId(event.target.value); onCriterionSelect?.(event.target.value); }}>
+              {evaluation.checklist_snapshot.criteria.map((criterion) => <option key={criterion.id} value={criterion.id}>{criterion.title}</option>)}
+            </select>
+          </label>
+          {existingAppeal && <p className="appeals-note">По этому критерию уже есть открытая апелляция. Дождитесь решения проверяющего.</p>}
+          <label className="field" htmlFor={`${formId}-author`}>Автор обращения
+            <input id={`${formId}-author`} required value={author} disabled={busy !== null} autoComplete="name"
+              onChange={(event) => setAuthor(event.target.value)} />
+          </label>
+          <label className="field" htmlFor={`${formId}-comment`}>Комментарий
+            <textarea id={`${formId}-comment`} required rows={3} value={reason} disabled={busy !== null}
+              placeholder="С чем вы не согласны? Укажите реплику или обстоятельство, которое нужно проверить."
+              onChange={(event) => setReason(event.target.value)} />
+          </label>
+          <button type="submit" className="button primary" disabled={busy !== null || loading || existingAppeal || !selectedCriterion}>
+            {busy === 'new' ? 'Сохраняем…' : 'Сохранить апелляцию'}
+          </button>
+        </div>
+        {selectedOriginal && <div className="appeals-original-preview">
+          <span className="appeals-caption">Исходная автоматическая оценка</span>
+          <strong>{answerLabel(selectedOriginal.value)}</strong>
+          <p>{selectedOriginal.reasoning}</p>
+          <EvidenceLinks result={selectedOriginal} conversation={conversation} onEvidence={onEvidence} />
+        </div>}
+      </div>
     </form>}
     {!loading && appeals.length === 0 && <div className="panel appeals-empty">
       <h3>Обращений пока нет</h3><p>{reviewMode ? 'Оператор может выбрать критерий и оставить комментарий в режиме подачи апелляции.' : 'Сохранённые обращения и решения проверяющего появятся здесь.'}</p>

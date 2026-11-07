@@ -1,5 +1,120 @@
 # AI evaluator handoff
 
+## Reserve connections (current implementation, 2026-11-08)
+
+The evaluator supports **основной**, **резерв 1**, **резерв 2**, in that order.
+Only credentials change: model, prompt version, generation settings, full input and
+schema stay the same. There is one logical result and one shared attempt/time budget.
+The success response text remains exact; failed calls are never presented as scores.
+
+Configure secrets only in the existing server `.env`; never copy it into another
+worktree or expose keys in frontend variables. Empty reserves leave primary operation
+unchanged. No legacy reserve-key aliases existed before this change.
+
+```dotenv
+GEMINI_API_KEY=
+GEMINI_API_KEY_BACKUP_1=
+GEMINI_API_KEY_BACKUP_2=
+GEMINI_QUOTA_GROUP=
+GEMINI_BACKUP_1_QUOTA_GROUP=
+GEMINI_BACKUP_2_QUOTA_GROUP=
+AI_MAX_ATTEMPTS=3
+AI_TRANSIENT_ATTEMPTS_PER_CONNECTION=2
+AI_QUOTA_EXHAUSTION_COOLDOWN_SECONDS=3600
+AI_TRANSIENT_COOLDOWN_SECONDS=5
+```
+
+Quota-group values are non-secret aliases for **verified shared quota/billing limits**,
+for example `project-a`. Keys in the same Google project share quota; different owners
+do not establish independence. Check the actual projects and applicable shared billing
+limits before assigning distinct aliases. An empty group is `unknown`: its quota may
+overlap **every** configured group. Exhausting an unknown group pauses all connections;
+exhausting a known group also excludes unknown connections. Distinct verified groups
+remain eligible. Identical credentials configured twice are used only once.
+
+The in-process gate atomically leases each connection and quota group through response
+classification, so concurrent jobs see a disabled key or exhausted group before another
+request starts. Pacing applies both per connection and per overlapping quota group.
+Known independent groups may run concurrently. State is shared across the backend queue,
+but not across processes or machines; use one backend worker. Restarting loses this
+in-memory state and does not restore Google quota.
+
+| Condition | Behavior |
+| --- | --- |
+| 401/403; typed invalid-key 400 | Disable that credential/model configuration until it changes or the application restarts; try the next eligible connection |
+| Explicit daily/exhausted quota | Suspend the overlapping quota group for at least the configured suspension and reported delay; skip its other keys |
+| Temporary 429 | Respect the longer Retry-After/RetryInfo/application cooldown; retry only within the shared budget, otherwise consider an independent eligible group |
+| Network timeout or 5xx/408 | Bounded retries with pauses; open a connection circuit after the configured consecutive-failure threshold, then consider the next eligible connection |
+| Bad request/model/schema configuration | Fail immediately; changing keys does not repair the request |
+| Safety refusal or output limit | Fail immediately without switching credentials |
+| Invalid model JSON/evidence | Bounded format repair on the same connection, never key-shopping for a better answer |
+
+The quota suspension is an application policy, **not a prediction of Google reset time**.
+Unknown 429 causes remain temporary rate limits; private free-text error messages are
+not used to invent quota/authentication classifications. Long server delays are never
+shortened for retrying the same connection. An unavailable pool returns a structured
+error with no fabricated criteria; after fixing credentials/quota, the caller may retry.
+
+`AI_MAX_ATTEMPTS` counts all actual requests across all keys, not attempts per key. It
+includes format repairs and transport failures. With a budget of 2, the third connection
+cannot be reached after two HTTP attempts. A budget of 3 can reach all three for immediate
+auth/quota failures; with two transient tries per connection, up to 5 may be needed to
+reach the final reserve. `AI_EVALUATION_TIMEOUT_SECONDS` includes queue-gate waits,
+pacing, backoff and all requests. Keep backend `AI_TIMEOUT_SECONDS` above that deadline.
+
+Transport remains direct HTTPX REST: each attempt owns a separate client and immutable
+credential selection. There is no Google SDK retry loop and no global credential mutation.
+HTTPX's default transport performs zero connection retries. If switching to Google Gen AI
+SDK later, explicitly set `HttpRetryOptions(attempts=1)` or integrate every SDK retry into
+this same budget; its documented default is five attempts and must not multiply ours.
+
+### Execution metadata and accounting
+
+`EvaluationDraft.execution` and `AIProviderError.execution` carry `run_id`, selected
+connection, failover flag, elapsed evaluator duration and all actual attempts. The backend
+owns storing/exporting this metadata. Each attempt has its connection/group, requested or
+resolved model, start/end, duration, safe error/status and available total tokens/cost.
+Successful `models_used` contains the resolved model of the completed response (requested
+model only if the provider omits its version); it does not count an alias and resolved
+version as two successful models. Failed targets remain explicit in attempt metadata.
+
+The same `run_id` joins the local append-only audit. Audit records now include immutable
+SHA-256 hashes of actual messages, full checklist, outgoing input and system instruction,
+plus duration and available token components/pricing. No keys, transcripts, raw responses
+or private error bodies enter this ledger. Local circuit rejection creates no fake HTTP
+attempt or token entry. Cancellations during requests remain attempts with unknown usage.
+Aggregate tokens/cost are `null` if any contributing attempt is unknown; known per-attempt
+values remain available. Evaluator duration includes waits and is distinct from each
+provider-attempt duration.
+
+### Reserve verification and limits
+
+`backend/app/ai/tests/test_failover.py` uses synthetic keys and `httpx.MockTransport` for
+primary failure, first-reserve failure, shared/unknown exhausted quota, complete outage,
+bounded Retry-After, circuit recovery, concurrent jobs, immutable payload/settings,
+safe refusals, total deadlines and audit linkage. It never exhausts a real quota.
+Run these together with the existing provider/validation tests and independent QA checks:
+
+```sh
+python -m pytest backend/app/ai/tests qa/test_ai_acceptance.py backend/tests/test_api.py -q
+```
+
+No real reserve availability test was performed for this implementation. Empty reserves
+mean reserve operation is **not configured**, even when all mock tests pass. The integrator
+will separately report any authorized short availability check. Failover does not establish
+evaluation accuracy or fix the published semantic findings AI-QA-002/003; those remain
+subject to human-labelled evaluation. It does not change the model, rubric or prompts.
+
+Primary documentation checked for this implementation:
+[Google project rate limits](https://ai.google.dev/gemini-api/docs/rate-limits),
+[GenerateContent errors](https://ai.google.dev/gemini-api/docs/generate-content/api-errors),
+[Google RetryInfo/QuotaFailure](https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto),
+[Google SDK retry options](https://googleapis.github.io/python-genai/genai.html#genai.types.HttpRetryOptions),
+[HTTPX transport retries](https://www.python-httpx.org/advanced/transports/).
+
+The remaining sections retain earlier implementation/smoke history. This section supersedes
+their old single-model-only gate and statement that execution metadata is absent.
+
 Entry point (contract v1, unchanged):
 
 ```python

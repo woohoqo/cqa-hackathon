@@ -25,9 +25,14 @@ _ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/"
 _BLOCK_REASONS = {"SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY"}
 _RETRY_INFO = "type.googleapis.com/google.rpc.RetryInfo"
 _QUOTA_FAILURE = "type.googleapis.com/google.rpc.QuotaFailure"
+_ERROR_INFO = "type.googleapis.com/google.rpc.ErrorInfo"
 _DURATION = re.compile(r"[0-9]{1,12}(?:\.[0-9]{1,9})?s\Z")
 _QUOTA_ID = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,199}\Z")
 _DAILY_QUOTA = re.compile(r"PerDay(?:[A-Z_-]|$)|(?:^|[_-])per[_-]day(?:[_-]|$)")
+_AUTH_REASONS = {"API_KEY_INVALID", "API_KEY_EXPIRED", "API_KEY_REVOKED", "API_KEY_SERVICE_BLOCKED",
+                 "API_KEY_HTTP_REFERRER_BLOCKED", "API_KEY_IP_ADDRESS_BLOCKED", "API_KEY_UNAUTHORIZED"}
+_EXHAUSTED_REASONS = {"BILLING_DISABLED", "BILLING_NOT_ACTIVE", "CREDIT_EXHAUSTED",
+                      "CREDITS_EXHAUSTED", "SPEND_LIMIT_EXCEEDED", "PROJECT_SPEND_CAP_EXCEEDED"}
 
 
 @dataclass(frozen=True)
@@ -100,27 +105,45 @@ def _quota_hints(body: bytes) -> tuple[float | None, bool]:
     return max(delays, default=None), daily
 
 
-async def _rate_limit_error(response: httpx.Response) -> AIProviderError:
-    header_delay = _retry_after(response.headers.get("Retry-After"))
+def _error_reasons(body: bytes) -> set[str]:
+    """Use a small typed allow-list, never classify from private free-text messages."""
+    try:
+        envelope = json.loads(body, parse_constant=_reject_constant)
+    except (ValueError, UnicodeError, RecursionError):
+        return set()
+    error = envelope.get("error") if isinstance(envelope, dict) else None
+    details = error.get("details") if isinstance(error, dict) else None
+    if not isinstance(details, list):
+        return set()
+    return {detail["reason"] for detail in details if isinstance(detail, dict)
+            and detail.get("@type") == _ERROR_INFO
+            and detail.get("domain") in {"googleapis.com", "generativelanguage.googleapis.com"}
+            and isinstance(detail.get("reason"), str)
+            and detail["reason"] in _AUTH_REASONS | _EXHAUSTED_REASONS}
+
+
+async def _bounded_error_body(response: httpx.Response) -> bytes:
     body = bytearray()
-    body_delay, daily = None, False
     try:
         async for chunk in response.aiter_bytes():
             if len(body) + len(chunk) > MAX_ERROR_BYTES:
-                break  # Never classify a partial or oversized error body.
+                return b""  # A partial error body must not influence key/group state.
             body.extend(chunk)
-        else:
-            body_delay, daily = _quota_hints(bytes(body))
     except httpx.HTTPError:
-        # HTTP status and header were already received. A broken error body
-        # must not erase the rate limit; task cancellation still propagates.
-        pass
+        return b""
+    return bytes(body)
+
+
+async def _rate_limit_error(response: httpx.Response) -> AIProviderError:
+    header_delay = _retry_after(response.headers.get("Retry-After"))
+    body = await _bounded_error_body(response)
+    body_delay, daily = _quota_hints(body)
     delays = [delay for delay in (header_delay, body_delay) if delay is not None]
     retry_after = max(delays, default=None)
-    if daily:
+    if daily or _error_reasons(body) & _EXHAUSTED_REASONS:
         error = AIProviderError(
-            "provider_daily_quota_exhausted",
-            "Gemini project daily quota is exhausted. Check the project quota in AI Studio and retry after it resets.",
+            "provider_daily_quota_exhausted" if daily else "provider_quota_exhausted",
+            "Квота или доступный лимит проекта Gemini исчерпаны. Проверьте группу квоты в AI Studio.",
             retryable=False,
         )
         # A reported delay is a lower bound, not a promise of a quota reset.
@@ -251,8 +274,12 @@ async def generate_once(settings: AISettings, system_instruction: str, user_cont
                         retry_after=_retry_after(response.headers.get("Retry-After")),
                     )
                 if status in {401, 403}:
-                    raise AIProviderError("provider_authentication_failed", "Gemini rejected the configured credentials or project access.")
+                    raise AIProviderError("provider_authentication_failed", "Gemini отклонил ключ или доступ проекта.")
                 if status != 200:
+                    # Google can report an invalid API key as HTTP 400 with
+                    # ErrorInfo, distinct from a malformed schema/model request.
+                    if status == 400 and _error_reasons(await _bounded_error_body(response)) & _AUTH_REASONS:
+                        raise AIProviderError("provider_authentication_failed", "Gemini отклонил ключ или доступ проекта.")
                     raise AIProviderError("provider_request_failed", "Gemini rejected the evaluation request. Check model access and configuration.")
                 body = bytearray()
                 async for chunk in response.aiter_bytes():

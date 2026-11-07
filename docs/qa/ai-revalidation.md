@@ -2,7 +2,23 @@
 
 Проверен опубликованный `feat/ai@e31d1ff32cadd696ae848c15b76e75f188f3640b` в отдельном worktree. После проверки выполнен `fetch`: удалённый head остался тем же. Независимые QA probes взяты из `feat/qa@51732c150a60636232aa89817c623ee2e9fe9fc2`. Производственный код и общие контракты не менялись; реальные DEV/holdout записи, секреты и API не использовались.
 
-## Выполненный запуск
+## Выполненные запуски
+
+### Чистая среда с requirements.lock: PASS
+
+После первоначального сбоя та же полная suite повторена интерпретатором из нового venv, установленного по README с `pip install -c requirements.lock -e ".[dev]"`. Текущий каталог остался worktree AI: production-модули берутся из проверенного `e31d1ff`, а не из QA-ветки, где находится venv.
+
+```powershell
+$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'
+Remove-Item Env:CQA_SKIP_ASYNC_TESTS -ErrorAction SilentlyContinue
+& '../qa/.venv-clean/Scripts/python.exe' -m pytest backend/tests backend/app/ai/tests ../qa/qa/test_ai_acceptance.py -q
+```
+
+Результат: **239 passed, 1 warning in 8.69s**, exit code 0; ошибок и пропусков нет. Прошли 54 backend tests, 173 AI tests и 12 независимых QA AI checks. Среда: Python 3.12.1, Pydantic 2.14.3, FastAPI 0.162.0, HTTPX 0.28.1, pytest 9.2.0. Native Windows asyncio, все вызовы AI имитируются. Единственное предупреждение: Starlette сообщает, что использование `httpx` в TestClient устарело и предлагает `httpx2`; зависимости из lock не изменялись.
+
+Проверка сгенерированных контрактов прошла без правок исходников или сохранённых JSON. Это закрывает QA-ENV-001 как несовпадение первого окружения, а не дефект контрактов. Числа двух запусков нельзя складывать: повторён один набор. Исходная неудачная попытка сохранена ниже.
+
+### Первоначальная глобальная среда: одна ошибка
 
 Обычный Windows asyncio, без offline/no-I/O runner и без пропуска async tests:
 
@@ -36,12 +52,12 @@ python -m pytest backend/tests backend/app/ai/tests ../qa/qa/test_ai_acceptance.
 
 ### QA-ENV-001: сохранённая JSON-схема отличается в незакреплённой среде
 
-- Ответственный: участник 1, зависимости/контракты; статус: воспроизведён в указанной среде, не подтверждён как дефект production-контракта.
+- Ответственный: участник 1, зависимости/контракты; статус: закрыт после успешного повторения в чистой locked-среде без изменения кода/контрактов. Исходный сбой сохранён как environment mismatch.
 - Вход: чистый опубликованный `e31d1ff`, указанные выше версии библиотек; пользовательских данных нет.
 - Шаги: выполнить `python -m pytest backend/tests/test_contract_exports.py -q`.
 - Ожидается: генератор `scripts.export_contracts.generate()` совпадает с файлами `contracts/`, как требует сам contract-export test.
 - Фактически: `test_committed_schemas_and_examples_match_models` падает при сравнении JSON; сохранённое `additionalProperties: true` отсутствует в схеме, сгенерированной текущей Pydantic.
-- Основание для осторожности: `requirements.lock` задаёт Pydantic 2.14.3, FastAPI 0.162.0 и pytest 9.2.0. Проверяемая глобальная среда им не соответствует. Нельзя перегенерировать общие контракты ради прохождения на старых версиях. Повторить в чистой locked-среде; её результат вести отдельно.
+- Причина несовместимости окружения: `requirements.lock` задаёт Pydantic 2.14.3, FastAPI 0.162.0 и pytest 9.2.0. Первоначальная глобальная среда им не соответствует. Полный повтор в чистой locked-среде дал 239 passed, в том числе contract-export test. Общие контракты не перегенерировались; отдельное влияние каждой библиотеки не устанавливалось.
 
 ### QA-AI-001 остаётся: журнал провайдера не связан однозначно с evaluation/export
 

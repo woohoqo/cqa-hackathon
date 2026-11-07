@@ -4,6 +4,11 @@
   --appeal-lime: #c7f34d;
   --appeal-cream: #f1f2e9;
   --appeal-sage: #a4b5a6;
+  --ink: #f1f2e9;
+  --muted: #a4b5a6;
+  --border: #a4b5a62e;
+  --danger: #ffb7a4;
+  --warning: #e9d3a0;
   display: grid;
   gap: 30px;
   min-width: 0;

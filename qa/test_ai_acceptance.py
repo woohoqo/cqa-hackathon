@@ -41,7 +41,7 @@ def checklist():
 
 
 def model_text(ids=('qa-current',), evidence='m3'):
-    return json.dumps({'criteria': {cid: {'value': True, 'reasoning': 'SYNTHETIC test response',
+    return json.dumps({'criteria': {cid: {'applicability': None, 'value': True, 'reasoning': 'SYNTHETIC test response',
         'evidence_message_ids': [evidence], 'evidence_kind': 'observed',
         'checked_message_ids': [], 'expected_action': None, 'na_condition_met': None} for cid in ids}})
 

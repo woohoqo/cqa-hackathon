@@ -1,5 +1,5 @@
-import type { Appeal, AppealCreate, ChecklistCreate, ChecklistVersion, Conversation, ConversationInput, Evaluation, EvaluationBatch, ImportResult, ReviewDecision, ReviewDecisionCreate } from './types';
-import { fetchEvaluationExport, type ExportFormat } from './downloads';
+import type { Appeal, AppealCreate, ChecklistCreate, ChecklistVersion, Conversation, ConversationInput, Dataset, DatasetKind, Evaluation, EvaluationBatch, EvaluationRun, ImportResult, OfficialExportReport, RetryResult, ReviewDecision, ReviewDecisionCreate } from './types';
+import { fetchEvaluationExport, fetchOfficialExport, type ExportFormat } from './downloads';
 import { organizerImportRequest } from './organizerImport';
 
 const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
@@ -34,17 +34,23 @@ async function listAll<T>(path: string, signal?: AbortSignal): Promise<T[]> {
   }
 }
 export const api = {
-  exportEvaluations: (format: ExportFormat) => fetchEvaluationExport(base, format),
+  exportEvaluations: (format: ExportFormat, batchId: string) => fetchEvaluationExport(base, format, fetch, batchId),
+  validateOfficialExport: (batchId: string, team_name: string) => post<OfficialExportReport>(`/batches/${id(batchId)}/official-export/validate`, { team_name }),
+  exportOfficial: (batchId: string, teamName: string) => fetchOfficialExport(base, batchId, teamName),
+  listDatasets: (signal?: AbortSignal) => request<Dataset[]>('/datasets', { signal }),
+  listRuns: (signal?: AbortSignal) => request<EvaluationRun[]>('/batches', { signal }),
   listConversations: (signal?: AbortSignal) => listAll<Conversation>('/conversations', signal),
   getConversation: (key: string) => request<Conversation>(`/conversations/${id(key)}`),
   listChecklists: (signal?: AbortSignal) => listAll<ChecklistVersion>('/checklists', signal),
   saveChecklist: (input: ChecklistCreate) => post<ChecklistVersion>('/checklists', input),
   listEvaluations: (signal?: AbortSignal) => listAll<Evaluation>('/evaluations', signal),
   getEvaluation: (key: string) => request<Evaluation>(`/evaluations/${id(key)}`),
-  evaluate: (conversation_ids: string[], checklist_id: string) => post<EvaluationBatch>('/evaluations', { conversation_ids, checklist_id }),
+  evaluate: (conversation_ids: string[], checklist_id: string, dataset_id: string, idempotency_key: string) => post<EvaluationBatch>('/evaluations', { conversation_ids, checklist_id, dataset_id, idempotency_key }),
   getBatch: (key: string) => request<EvaluationBatch>(`/batches/${id(key)}`),
-  importJson: (conversations: ConversationInput[]) => post<ImportResult>('/imports/json', { conversations }),
-  importDev: (group_id = 'DEV', api_url = '') => post<ImportResult>('/imports/dev', organizerImportRequest(group_id, api_url)),
+  retryBatch: (key: string, failed_evaluation_ids: string[]) => post<RetryResult>(`/batches/${id(key)}/retry`, { failed_evaluation_ids }),
+  getAttempts: (key: string) => request<Evaluation[]>(`/batches/${id(key)}/attempts`),
+  importJson: (conversations: ConversationInput[], dataset_kind: DatasetKind, dataset_name?: string) => post<ImportResult>('/imports/json', { conversations, dataset_kind, ...(dataset_name?.trim() ? { dataset_name: dataset_name.trim() } : {}) }),
+  importDev: (group_id = 'DEV', api_url = '', dataset_kind: DatasetKind = 'dev', dataset_name?: string) => post<ImportResult>('/imports/dev', { ...organizerImportRequest(group_id, api_url), dataset_kind, ...(dataset_name?.trim() ? { dataset_name: dataset_name.trim() } : {}) }),
   listAppeals: (key: string) => request<Appeal[]>(`/evaluations/${id(key)}/appeals`),
   listDecisions: (key: string) => request<ReviewDecision[]>(`/evaluations/${id(key)}/decisions`),
   createAppeal: (key: string, input: AppealCreate) => post<Appeal>(`/evaluations/${id(key)}/appeals`, input),

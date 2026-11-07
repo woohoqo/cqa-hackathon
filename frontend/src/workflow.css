@@ -1,48 +1,42 @@
-.workflow-header { max-width: 1440px; margin: auto; padding: 30px 48px 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.workflow-header h1 { font: 500 clamp(28px, 3.3vw, 46px)/1.2 var(--display); letter-spacing: -.5px; margin-top: 8px; }
-.workflow-header h1 em { font-style: normal; color: var(--accent); }
-.workflow-header p { color: var(--muted); font-size: 12px; margin-top: 10px; }
-.workflow-console { max-width: 1440px; margin: 0 auto; padding: 0 48px 30px; display: grid; grid-template-columns: 1fr 1.35fr 1.2fr; gap: 16px; }
-.workflow-console > div, .workflow-export { min-width: 0; padding: 20px; background: #102e22; border: 1px solid var(--border); border-radius: 10px; }
-.workflow-step-title { display: flex; gap: 10px; align-items: start; margin-bottom: 18px; }
-.workflow-step-title > span { color: var(--accent); font: 18px var(--display); border: 1px solid var(--border-strong); padding: 4px 7px; border-radius: 5px; }
-.workflow-step-title h3 { font-size: 16px; margin: 2px 0 6px; }
-.workflow-step-title p, .workflow-console .help { color: var(--muted); font-size: 11px; line-height: 1.7; }
-.workflow-controls, .official-export-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 10px; }
-.workflow-console .field { width: 100%; min-width: 0; margin: 0; font-size: 11px; }
-.workflow-console .field select, .workflow-console .field input { width: 100%; min-height: 40px; font-size: 12px; padding: 9px 10px; }
-.workflow-console .button { min-height: 38px; padding: 9px 12px; font-size: 11px; }
-.workflow-console .run-select { margin-top: 18px; }
-.workflow-progress { border-top: 1px solid var(--border); margin-top: 16px; padding-top: 14px; }
-.workflow-progress > div { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
-.workflow-progress progress { width: 100%; height: 6px; accent-color: var(--accent); margin: 12px 0 8px; }
-.workflow-progress > p { font-size: 11px; color: var(--muted); margin: 0 0 8px; }
-.workflow-progress .button { margin-top: 5px; }
-.export-validation { padding: 12px; border: 1px solid #a4b5a64a; border-radius: 6px; margin-top: 14px; font-size: 11px; overflow-wrap: anywhere; }
+/* Dataset and result controls use the original light working surface. */
+.dataset-context { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-bottom: 8px; }
+.dataset-context .field { min-width: 0; margin: 0; font-size: 12px; }
+.dataset-context select { width: 100%; min-height: 43px; font-size: 12px; }
+.dataset-caption { margin-bottom: 22px; }
+.run-progress { padding: 16px 18px; border: 1px solid var(--border); background: #e7ebdf; border-radius: 7px; margin-bottom: 24px; }
+.run-progress > div { display: flex; justify-content: space-between; gap: 15px; font-size: 13px; }
+.run-progress > div span { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.run-progress progress { width: 100%; height: 5px; accent-color: #5e8a35; margin: 12px 0 8px; }
+.run-progress p { font-size: 11px; color: var(--muted); margin: 0 0 6px; }
+.run-progress .button { margin-top: 8px; padding: 8px 12px; min-height: 36px; font-size: 11px; }
+.results-export-panel { border-bottom: 1px solid var(--border); padding-bottom: 22px; margin-bottom: 24px; }
+.results-export-panel .export-toolbar { padding-bottom: 10px; align-items: end; }
+.official-export-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.official-export-controls .field { width: 190px; min-width: 0; margin: 0; font-size: 11px; }
+.official-export-controls input { width: 100%; min-height: 40px; font-size: 12px; padding: 9px 10px; }
+.official-export-controls .button { min-height: 40px; padding: 9px 12px; font-size: 11px; }
+.export-validation { padding: 12px; border: 1px solid var(--border-strong); border-radius: 6px; margin-top: 14px; font-size: 12px; overflow-wrap: anywhere; }
 .export-validation > p { margin-top: 8px; }
-.export-validation.valid { color: #c2dda7; border-color: #8bb27060; }
-.export-validation.warning { color: #ead09a; border-color: #ddbc6460; }
-.export-validation.invalid { color: #f0b3a6; border-color: #d8917960; }
+.export-validation.valid { color: #356326; border-color: #8bb27060; }
+.export-validation.warning { color: #77581e; border-color: #b7944160; }
+.export-validation.invalid { color: #8e4532; border-color: #b9684e60; }
 .export-issues { padding-left: 17px; margin: 9px 0 0; max-height: 220px; overflow: auto; }
 .export-issues:empty { display: none; }
 .export-issues li + li { margin-top: 8px; }
 .export-issues strong, .export-issues span { display: block; }
-.workflow-export .notice { margin-top: 12px; font-size: 11px; }
-.workflow-export .export-notice { color: #c2dda7; margin: 12px 0 0; font-size: 11px; }
-.archive-export { border-top: 1px solid var(--border); margin-top: 17px; padding-top: 12px; }
-.archive-export summary { cursor: pointer; color: var(--muted); font-size: 11px; }
+.results-export-panel .notice { margin-top: 12px; font-size: 12px; }
+.results-export-panel .notice.error { color: #8e4532; border-color: #b9684e60; }
+.results-export-panel .export-notice { margin: 12px 0 0; font-size: 12px; }
+.archive-export { margin-top: 12px; }
+.archive-export summary { cursor: pointer; color: var(--muted); font-size: 12px; }
 .archive-export .help { margin: 10px 0; }
-.workflow-table { padding-top: 26px; }
-.workflow-table h2 { font-size: 34px; }
-.selection-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; max-width: 350px; font-size: 12px; }
-.selection-summary .help { flex-basis: 100%; }
 .score-sort { border: 0; padding: 0; font: inherit; color: inherit; background: transparent; text-align: left; text-transform: inherit; letter-spacing: inherit; }
 .score-sort:hover { color: #102e22; }
 .score-sort span { padding-left: 6px; color: #376b2d; font-size: 16px; }
 .dialogue-table .result-provenance { white-space: normal; min-width: 210px; max-width: 300px; font-size: 11px; overflow-wrap: anywhere; }
 .result-provenance > span:first-child { display: block; max-width: 240px; }
 .failure-code { max-width: 160px; white-space: normal; overflow-wrap: anywhere; }
-.table-pagination { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 22px 0; font-size: 12px; color: var(--muted); }
+.table-pagination { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 22px 0 0; font-size: 12px; color: var(--muted); }
 .table-pagination > div { display: flex; align-items: center; gap: 14px; }
 .table-pagination .button { min-height: 36px; padding: 8px 12px; font-size: 11px; }
 .import-dataset-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -50,5 +44,13 @@
 .evaluation-provenance div { min-width: 0; }
 .evaluation-provenance dt { font-size: 10px; color: var(--muted); }
 .evaluation-provenance dd { margin: 3px 0 0; font-size: 11px; overflow-wrap: anywhere; }
-@media (max-width: 1200px) { .workflow-header { padding-left: 32px; padding-right: 32px; } .workflow-console { padding-left: 32px; padding-right: 32px; grid-template-columns: 1fr 1fr; } .workflow-export { grid-column: 1 / -1; } .official-export-controls .field { max-width: 290px; } }
-@media (max-width: 760px) { .workflow-header { padding: 24px 20px 20px; align-items: start; } .workflow-header > .button { font-size: 11px; padding: 9px; } .workflow-console { padding: 0 20px 24px; grid-template-columns: minmax(0, 1fr); } .workflow-export { grid-column: auto; } .workflow-table .panel-heading { flex-direction: column; align-items: start; gap: 15px; } .selection-summary { max-width: none; } .table-pagination { flex-wrap: wrap; } .table-pagination > div { gap: 10px; flex-wrap: wrap; } .import-dataset-fields { grid-template-columns: 1fr; gap: 0; } .evaluation-provenance { grid-template-columns: 1fr; margin-left: 16px; margin-right: 16px; } }
+@media (max-width: 760px) {
+  .dataset-context { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .official-export-controls { width: 100%; }
+  .official-export-controls .field { width: 100%; }
+  .official-export-controls .button { flex: 1; }
+  .table-pagination { flex-wrap: wrap; }
+  .table-pagination > div { gap: 10px; flex-wrap: wrap; }
+  .import-dataset-fields { grid-template-columns: 1fr; gap: 0; }
+  .evaluation-provenance { grid-template-columns: 1fr; margin-left: 16px; margin-right: 16px; }
+}

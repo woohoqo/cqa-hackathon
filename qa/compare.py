@@ -16,7 +16,9 @@ Answers use exact yes/no/na strings or integer scale values. Missing is not na.
 Only the published default eight-criterion checklist is scored here. Its hash
 binds references/runs; a custom rubric needs an explicit scoring adapter rather
 than merely changing checklist_hash. score_answers is the adapter boundary.
-Totals are recomputed from answers, never from a reported total or an appeal.
+Answer-derived totals are recomputed by QA. Stored original totals are measured
+separately against the same reference; missing/invalid totals retain coverage.
+Neither metric uses an appeal.
 Only original_ai is read: final/final_ai/appeal fields cannot improve metrics.
 
 Attempt_number=1 is primary, even when it failed or is missing. First valid success
@@ -176,7 +178,11 @@ def _is_api_error(attempt):
     category = attempt.get('error_category') or ''
     return attempt.get('status') != 'success' and (
         category in {'api_error', 'provider_error', 'timeout', 'rate_limit', 'rate_limited',
-                     'network_error', 'authentication_error', 'connection_error'} or
+                     'network_error', 'authentication_error', 'connection_error',
+                     'provider_rate_limit', 'provider_unavailable', 'provider_timeout',
+                     'provider_connection_failed', 'provider_authentication_failed',
+                     'provider_request_failed', 'provider_response_too_large',
+                     'invalid_provider_response', 'provider_daily_quota_exhausted'} or
         bool(re.fullmatch(r'http_[45][0-9][0-9]', category)))
 
 
@@ -188,6 +194,16 @@ def _reported_total_mismatch(record, calculated):
         return value is not None
     return (type(value) not in (int, float) or not math.isfinite(value) or
             abs(value - calculated) > 0.000001)
+
+
+def _stored_total(record):
+    """Sanitize the saved original total; never serialize NaN or model text."""
+    if not isinstance(record, dict) or 'total' not in record:
+        return 'missing', None
+    value = record['total']
+    if type(value) not in (int, float) or not math.isfinite(value) or not 0 <= value <= 100:
+        return 'invalid', None
+    return 'valid', value
 
 
 def _assess_attempt(attempt, item, checklist_hash):
@@ -204,6 +220,7 @@ def _assess_attempt(attempt, item, checklist_hash):
     problems.extend(answer_errors)
     valid = not problems
     calculated = score_answers(answers) if valid else None
+    stored_state, stored_value = _stored_total(original)
     return {
         'attempt_id': attempt['attempt_id'],
         'attempt_number': attempt['attempt_number'],
@@ -212,6 +229,8 @@ def _assess_attempt(attempt, item, checklist_hash):
         'problems': problems,
         'answers': answers,
         'total': calculated,
+        'stored_total_state': stored_state,
+        'stored_total': stored_value,
         'reported_total_mismatch': valid and _reported_total_mismatch(original, calculated),
     }
 
@@ -255,6 +274,22 @@ def _metrics(items, references, predictions):
                                for cid in pairs) if pairs else None,
         'pairs': len(pairs), 'labelled': len(labelled),
         'uncomputable_comparable': len(comparable) - len(pairs)}
+    stored_pairs = [cid for cid in comparable
+                    if references[cid]['total'] is not None
+                    and predictions[cid]['stored_total_state'] == 'valid']
+    missing = [cid for cid in comparable if predictions[cid]['stored_total_state'] == 'missing']
+    invalid = [cid for cid in comparable if predictions[cid]['stored_total_state'] == 'invalid']
+    result['stored_original_total_score'] = {
+        'mae': statistics.mean(abs(references[cid]['total'] - predictions[cid]['stored_total'])
+                               for cid in stored_pairs) if stored_pairs else None,
+        'pairs': len(stored_pairs), 'labelled': len(labelled), 'comparable': len(comparable),
+        'coverage_on_labelled': ratio(len(stored_pairs), len(labelled)),
+        'coverage_on_comparable': ratio(len(stored_pairs), len(comparable)),
+        'missing_count': len(missing), 'missing_ids': missing,
+        'invalid_count': len(invalid), 'invalid_ids': invalid,
+        'unprocessed_labelled_count': len(labelled) - len(comparable),
+        'uncomputable_reference_count': sum(references[cid]['total'] is None for cid in comparable),
+        'note': 'Saved original total vs QA total from reference answers; appeals excluded. Missing/invalid totals are not zero.'}
     tp = fp = fn = tn = 0
     for cid in comparable:
         actual = references[cid]['answers']['8'] == 'yes'
@@ -307,10 +342,13 @@ def _operations(items, attempts, assessed):
         'eventual_successes': any_ok, 'eventual_success_rate': ratio(any_ok, len(ids)),
         'non_success_attempts': sum(errors.values()), 'error_categories': dict(errors),
         'api_error_attempts': sum(api_errors.values()), 'api_error_categories': dict(api_errors),
-        'error_category_note': 'API classification recognizes timeout, rate_limit/rate_limited, network/connection/authentication/provider/api_error and http_4xx/http_5xx; all other non-success states remain in error_categories.',
+        'api_error_measurement_note': 'Counts records with API-related error categories, not proven HTTP calls. Backend evaluation jobs can fail in a local quota cooldown with the same code; use linked provider attempt records for actual API call counts.',
+        'error_category_note': 'API classification includes explicit provider transport/status/protocol codes, generic network/API errors and http_4xx/http_5xx. Configuration and invalid model answers remain non-API errors; all failures remain in error_categories.',
         'invalid_success_attempts': sum(a.get('status') == 'success' and
             not assessed[a['attempt_id']]['valid_success'] for a in selected),
         'forbidden_na_by_criterion': dict(forbidden),
+        'reported_total_checked_successes': sum(assessed[a['attempt_id']]['valid_success']
+            and assessed[a['attempt_id']]['stored_total_state'] != 'missing' for a in selected),
         'reported_total_mismatch_attempt_ids': [a['attempt_id'] for a in selected
             if assessed[a['attempt_id']]['reported_total_mismatch']],
         'cost': {'total_usd': sum(known_costs) if len(known_costs) == len(selected) else None,

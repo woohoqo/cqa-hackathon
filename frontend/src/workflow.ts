@@ -23,6 +23,24 @@ export function attemptsForRun(evaluations: Evaluation[], runId: string): Evalua
   return runId ? evaluations.filter(evaluation => evaluation.batch_id === runId) : [];
 }
 
+export function selectedConversationIds(conversations: Conversation[], selected: ReadonlySet<string>, pendingIds: ReadonlySet<string>): string[] {
+  return conversations.filter(conversation => selected.has(conversation.id) && !pendingIds.has(conversation.id)).map(conversation => conversation.id);
+}
+
+export interface EvaluationSubmissionIntent { fingerprint: string; key: string }
+
+/** Keep the same logical POST until a response acknowledges it, even if transport failed. */
+export function evaluationSubmissionIntent(previous: EvaluationSubmissionIntent | null, datasetId: string, checklistId: string, conversationIds: string[], createKey: () => string): EvaluationSubmissionIntent {
+  const fingerprint = JSON.stringify([datasetId, checklistId, [...conversationIds].sort()]);
+  return previous?.fingerprint === fingerprint ? previous : { fingerprint, key: createKey() };
+}
+
+/** Follow the latest server attempt unless the reviewer explicitly pinned history. */
+export function displayedAttempt(history: Evaluation[], latestId?: string, selectedId?: string | null): Evaluation | undefined {
+  const latest = history.find(evaluation => evaluation.id === latestId) || history[0];
+  return selectedId ? history.find(evaluation => evaluation.id === selectedId) || latest : latest;
+}
+
 /** Provenance always comes from the saved evaluation, never a current selector. */
 export function evaluationProvenance(evaluation: Evaluation) {
   const attemptedModels = [...new Set((evaluation.ai_execution?.attempts || [])

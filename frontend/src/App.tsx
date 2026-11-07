@@ -7,7 +7,7 @@ import { DialogueDetail } from './DialogueDetail';
 import { ChecklistEditor } from './ChecklistEditor';
 import { ImportDialog } from './ImportDialog';
 import { newestFirst, pending } from './display';
-import { attemptsForRun } from './workflow';
+import { attemptsForRun, evaluationSubmissionIntent, type EvaluationSubmissionIntent } from './workflow';
 
 function readSelection(key: string) { try { return localStorage.getItem(key) || ''; } catch { return ''; } }
 function storeSelection(datasetId: string, runId: string) { try { localStorage.setItem('cqa.dataset', datasetId); localStorage.setItem('cqa.run', runId); } catch { /* Storage may be disabled. Server records remain available. */ } }
@@ -37,6 +37,8 @@ export default function App() {
   const loadSequence = useRef(0);
   const controller = useRef<AbortController | null>(null);
   const startGuard = useRef(false);
+  const submissionIntent = useRef<EvaluationSubmissionIntent | null>(null);
+  useEffect(() => { submissionIntent.current = null; }, [datasetId, checklistId, runId]);
 
   const refresh = useCallback(async () => {
     const sequence = ++loadSequence.current;
@@ -96,7 +98,10 @@ export default function App() {
     if (!dataset || ids.some(id => !dataset.conversation_ids.includes(id))) { setError('Диалог не входит в выбранный набор. Выберите его набор перед новым запуском.'); return; }
     startGuard.current = true; setStarting(true); setNotice(''); setError('');
     try {
-      const result = await api.evaluate(ids, checklistId, datasetId, crypto.randomUUID());
+      const intent = evaluationSubmissionIntent(submissionIntent.current, datasetId, checklistId, ids, () => crypto.randomUUID());
+      submissionIntent.current = intent;
+      const result = await api.evaluate([...ids].sort(), checklistId, datasetId, intent.key);
+      submissionIntent.current = null;
       // Ignore an older list request so a queued job cannot disappear from the UI.
       acceptBatch(result);
       setNotice(`Поставлено в очередь: ${result.evaluations.length}. Чек-лист v${result.evaluations[0]?.checklist_snapshot.version ?? ''}.`);

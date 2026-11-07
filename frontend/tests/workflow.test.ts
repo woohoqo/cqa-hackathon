@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ascendingFinalScore, attemptsForRun, evaluationProvenance, paginate } from '../src/workflow.ts';
+import { ascendingFinalScore, attemptsForRun, displayedAttempt, evaluationProvenance, evaluationSubmissionIntent, paginate, selectedConversationIds } from '../src/workflow.ts';
 import type { Conversation, Evaluation } from '../src/types.ts';
 
 const conversation = (id: string) => ({ id }) as Conversation;
@@ -60,4 +60,37 @@ test('failed provenance lists only actual network attempts, without reusing succ
     ] } } as Evaluation;
   assert.equal(evaluationProvenance(failed).model, 'Попытки: primary, backup');
   assert.equal(evaluationProvenance({ ...failed, ai_execution: { models_used: ['configured-only'] } }).model, 'Сетевая попытка не записана');
+});
+
+test('selection is restricted to the current run while filters do not discard selected IDs', () => {
+  const selected = new Set(['inside', 'hidden-by-filter', 'outside-run', 'running']);
+  const runConversations = ['inside', 'hidden-by-filter', 'running'].map(conversation);
+  assert.deepEqual(selectedConversationIds(runConversations, selected, new Set(['running'])), ['inside', 'hidden-by-filter']);
+  assert.deepEqual([...selected], ['inside', 'hidden-by-filter', 'outside-run', 'running']);
+  assert.deepEqual(selectedConversationIds(runConversations, new Set(), new Set()), []);
+});
+
+test('unknown POST outcome reuses a key; changed intent or acknowledged response starts a new one', () => {
+  let counter = 0; const key = () => `request-${++counter}`;
+  const ids = ['b', 'a'];
+  const initial = evaluationSubmissionIntent(null, 'dataset', 'checklist-v1', ids, key);
+  const retry = evaluationSubmissionIntent(initial, 'dataset', 'checklist-v1', ['a', 'b'], key);
+  assert.equal(retry.key, initial.key); assert.equal(counter, 1);
+  assert.deepEqual(ids, ['b', 'a']);
+  assert.notEqual(evaluationSubmissionIntent(retry, 'dataset', 'checklist-v2', ids, key).key, initial.key);
+  assert.notEqual(evaluationSubmissionIntent(retry, 'other-dataset', 'checklist-v1', ids, key).key, initial.key);
+  assert.notEqual(evaluationSubmissionIntent(retry, 'dataset', 'checklist-v1', ['a'], key).key, initial.key);
+  assert.notEqual(evaluationSubmissionIntent(null, 'dataset', 'checklist-v1', ids, key).key, initial.key);
+});
+
+test('detail follows retry latest until history is explicitly selected, and can resume following', () => {
+  const failed = { id: 'failed', status: 'failed' } as Evaluation;
+  const retry = { id: 'retry', status: 'running' } as Evaluation;
+  assert.equal(displayedAttempt([failed], 'failed', null), failed);
+  assert.equal(displayedAttempt([retry, failed], 'retry', null), retry);
+  assert.equal(displayedAttempt([retry, failed], 'retry', 'failed'), failed);
+  assert.equal(displayedAttempt([retry, failed], 'retry', null), retry);
+  const newRun = { id: 'new-run-attempt' } as Evaluation;
+  assert.equal(displayedAttempt([newRun], newRun.id, null), newRun);
+  assert.equal(displayedAttempt([], undefined, null), undefined);
 });

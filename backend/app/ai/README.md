@@ -4,7 +4,8 @@ For integration-wide verification, read [the full QA recheck](../../../docs/qa/f
 and [the enhancement report](../../../docs/enhancements-report.md). Each report identifies
 its tested revision and distinguishes mocked tests from actual model calls. The historical
 reports near the end of this file describe earlier revisions, not the current test coverage
-or a present network restriction. QA findings AI-QA-002/003 remain open accuracy limitations.
+or a present network restriction. The focused follow-up to QA findings AI-QA-002/003 is
+documented below; accuracy on unseen transcripts remains unmeasured.
 
 ## Applicability before grading — prompt v1.1.1
 
@@ -29,7 +30,8 @@ unnecessary in free-text reasoning yet return true. Structural consistency still
 prove that the model's applicability decision is factually correct. Tests include applicable
 positive/negative controls and dynamic boolean, scale and flag criteria; they do not establish
 RU/KZ/EN accuracy. The integrator/QA report records the separately authorized, controlled live
-old/new comparison. No real model call was made while implementing this change.
+old/new comparison. Implementation tests use mocked model calls; the separate live follow-up
+is described below.
 
 Version v1.1.1 further distinguishes the operator's initial information from the client's
 need to learn an answer, conditional on the meaning of the current N/A rule. It does not
@@ -40,6 +42,28 @@ the cited facts independently of other dimensions. Absence claims must be checke
 the full transcript and the current rule's alternatives. These remain model instructions,
 not semantic corrections performed by the validator. Model/thinking/temperature settings
 are unchanged by this commit; any separate profile comparison must report its actual settings.
+
+### Tested demo profile and limits
+
+The accepted focused N/A profile is prompt **v1.1.1**, `gemini-3.5-flash-lite`, and
+`GEMINI_THINKING_LEVEL=high`. See [the controlled live recheck](../../../docs/qa/na-live-recheck-20261108.md)
+for the frozen RU/KZ/EN assertions, all candidate runs, exact settings and retained failures.
+Earlier minimal/low candidates failed checks. The first high run passed the frozen assertions;
+the repeat initially completed 8/9 jobs, with one invalid-output failure. A separate retry of
+that failed job then passed. Both invalid attempts remain recorded: these were not two
+flawless runs. Two additional changed-criterion cases correctly distinguished greeting alone
+from an explicit apology and returned the newly added criterion.
+
+This is a development comparison on a small reused synthetic set, not organizer-ground-truth
+accuracy or proof of no unseen regressions. Some scale values outside the frozen assertions
+changed; consult the report before claiming all criteria stayed unchanged. Higher thinking
+can increase token use, latency and cost; reported usage and unknown attempts remain in the
+audit, and unknown cost is not zero. See [Google's thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
+
+For this demo profile, change only `GEMINI_THINKING_LEVEL=high` in the existing server `.env`
+and restart the backend. Preserve its keys and other settings; never overwrite `.env` from
+an example. The AI profile template now uses high; code-level configuration defaults remain
+unchanged. Empty reserve keys remain unconfigured, and no live reserve test is implied.
 
 ## Reserve connections (current implementation, 2026-11-08)
 
@@ -193,7 +217,7 @@ the provider uses the project's existing `httpx`, `pydantic` and `python-dotenv`
 | `AI_RATE_LIMIT_COOLDOWN_SECONDS` | `60`; minimum shared cooldown on HTTP 429, extended by Google's delay |
 | `GEMINI_MAX_OUTPUT_TOKENS` | `8192`; may need adjustment for long checklists/thinking |
 | `GEMINI_TEMPERATURE` | `1.0`, Google's recommended default for Gemini 3 |
-| `GEMINI_THINKING_LEVEL` | Unset; free-tier profile uses `minimal`, supported by 3.5 Flash-Lite |
+| `GEMINI_THINKING_LEVEL` | Unset in code; current checked demo profile uses `high`; see the focused live report above |
 | `GEMINI_THINKING_BUDGET` | Unset; alternative for budget-based models, not with thinking level |
 | `AI_USAGE_LOG_PATH` | `data/ai_usage.jsonl`, relative to process working directory |
 | `AI_INPUT_USD_PER_MILLION` | Unset; optional configured uncached input price |
@@ -214,8 +238,9 @@ Run `python -m scripts.init_env` from the repository root, then set `GEMINI_API_
 in that checkout's `.env` once. This command never replaces an existing `.env`.
 Do not copy a sample over an existing secret file. If applying a different profile,
 edit only the relevant non-secret settings and keep the existing key and DEV URL.
-The original free-tier profile selected `gemini-3.5-flash-lite`, minimal thinking, backend
-concurrency 1, at most two attempts and 15 seconds between request starts. Existing settings
+The current AI profile selects `gemini-3.5-flash-lite`, high thinking, backend concurrency 1,
+at most two attempts and 15 seconds between request starts. The earlier minimal-thinking
+profile is historical. Existing settings
 are preserved; inspect the current root example/profile for a fresh installation. Two
 attempts cannot reach a third key after two failures. This is conservative application pacing,
 NOT a claim that Google's quota is 4 RPM. Check the project's active RPM/input TPM/RPD
@@ -245,8 +270,8 @@ would waste quota. Increase the output cap for longer checklists instead of drop
 
 The free profile uses zero unit prices (the confirmed Free Tier), not a measured $0 run.
 These variables cannot activate Free Tier or prevent charges on a billing-enabled project.
-Unknown usage remains null. Minimal thinking and pacing have not yet been compared on
-human labels; the profile is an operational starting point, not a demonstrated quality gain.
+Unknown usage remains null. The thinking-profile comparison used the small synthetic set
+reported above. Calibration against human labels and quality gains from pacing remain unmeasured.
 
 ## Evaluation and evidence
 

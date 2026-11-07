@@ -4,11 +4,13 @@ import io
 import json
 from contextlib import asynccontextmanager
 from dataclasses import replace
+from pathlib import Path
 
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from .contracts import (Appeal, AppealCreate, ChecklistCreate, ChecklistVersion, Conversation,
                         ConversationInput, DevImportRequest, ErrorResponse, Evaluation, EvaluationBatch,
@@ -21,7 +23,8 @@ from .settings import Settings
 from .storage import Database
 
 
-def create_app(*, database_path: str | None = None, evaluator=None, settings: Settings | None = None) -> FastAPI:
+def create_app(*, database_path: str | None = None, evaluator=None, settings: Settings | None = None,
+               frontend_dist: str | None = None) -> FastAPI:
     config = settings or Settings.from_env()
     if database_path is not None:
         config = replace(config, database_path=database_path)
@@ -162,6 +165,11 @@ def create_app(*, database_path: str | None = None, evaluator=None, settings: Se
                 e.final_score.total if e.final_score else None, e.final_score.gross_error if e.final_score else None]])
         return Response("\ufeff" + stream.getvalue(), media_type="text/csv; charset=utf-8", headers=headers)
 
+    # Build once with pnpm build; serve the UI and API from one origin for the demo.
+    # Mount last so API, health and interactive docs keep their routes.
+    static_path = Path(frontend_dist) if frontend_dist else Path(__file__).resolve().parents[2] / "frontend" / "dist"
+    if (static_path / "index.html").is_file():
+        app.mount("/", StaticFiles(directory=static_path, html=True), name="frontend")
     return app
 
 

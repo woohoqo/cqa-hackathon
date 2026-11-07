@@ -1,0 +1,284 @@
+{
+  "format_version": 1,
+  "config_version": "organizer-v1",
+  "checklist_hash": "3a1ac1289de3b6a06ef36eb152e9db43d025cbed5720a3d90e93a00498cc7e81",
+  "dataset_content_hash": "6f4e8350c0a2556a907918a1b4a84b30b27cbb1707655246a5b211125839108a",
+  "selection_version": "qa-proposal-v1",
+  "freeze_status": "pending_human_group_review",
+  "grouping_source": "automatically_proposed_not_ground_truth",
+  "records": [
+    {
+      "conversation_id": "p1-ru-001",
+      "language": "RU",
+      "channel": "agent chat",
+      "messages": 12,
+      "transcript_hash": "e3de4212af9e11b747848f6d053d64a4348bc4ed0639820a437d4f6c84bdad74",
+      "scenario_group_id": "service_reports",
+      "split": "tuning",
+      "pilot": true
+    },
+    {
+      "conversation_id": "p1-ru-006",
+      "language": "RU",
+      "channel": "agent chat",
+      "messages": 15,
+      "transcript_hash": "8244e708d4833f7299888a5c2dcb3bb6f8c8301ac9eed57b4187bf8f6af361db",
+      "scenario_group_id": "service_reports",
+      "split": "tuning",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-kz-003",
+      "language": "KZ",
+      "channel": "agent chat",
+      "messages": 26,
+      "transcript_hash": "98edab5f83e7e1a9735c7fa175ce83103ffc62a01d254570083babf6e3283ae7",
+      "scenario_group_id": "service_reports",
+      "split": "tuning",
+      "pilot": true
+    },
+    {
+      "conversation_id": "p1-en-006",
+      "language": "EN",
+      "channel": "agent chat",
+      "messages": 30,
+      "transcript_hash": "ce6267e97848c8bda6b9cef96dbbff9cab46cd735d55d503d66996ba2b22602b",
+      "scenario_group_id": "service_reports",
+      "split": "tuning",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-ru-007",
+      "language": "RU",
+      "channel": "agent chat",
+      "messages": 13,
+      "transcript_hash": "edb2c3ec6adee4135be97caa70bcd34b1e9e4cde739393620b85bf5d8567c0f4",
+      "scenario_group_id": "profile_update",
+      "split": "tuning",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-kz-005",
+      "language": "KZ",
+      "channel": "agent chat",
+      "messages": 14,
+      "transcript_hash": "713310b3a84de811e7958452df48c6280da9618006945fbc3fd20c9236e0390a",
+      "scenario_group_id": "profile_update",
+      "split": "tuning",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-ru-029",
+      "language": "RU",
+      "channel": "agent chat",
+      "messages": 14,
+      "transcript_hash": "287d68632958fc13324169df89ce2cfdeb828597ad55f5ba57af8cf44c4e601b",
+      "scenario_group_id": "website_login",
+      "split": "tuning",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-en-015",
+      "language": "EN",
+      "channel": "agent chat",
+      "messages": 14,
+      "transcript_hash": "7948da3991714b8ec9c391edcc947d51c1890dca58c6562c566fd01b15d0f5a1",
+      "scenario_group_id": "website_login",
+      "split": "tuning",
+      "pilot": true
+    },
+    {
+      "conversation_id": "p1-kz-013",
+      "language": "KZ",
+      "channel": "agent chat",
+      "messages": 14,
+      "transcript_hash": "d2627bab9e8f3ae1f1b14ab2afe38f492b608f9d6e6be4c14c6371c101a66f68",
+      "scenario_group_id": "private_advice",
+      "split": "tuning",
+      "pilot": true
+    },
+    {
+      "conversation_id": "p1-en-013",
+      "language": "EN",
+      "channel": "agent chat",
+      "messages": 14,
+      "transcript_hash": "519db27828dab86e7f3e360b73d4cfbbb72a7d0bbd154b8263aa182a6277c71d",
+      "scenario_group_id": "private_advice",
+      "split": "tuning",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-ru-025",
+      "language": "RU",
+      "channel": "agent chat",
+      "messages": 11,
+      "transcript_hash": "56a059641e96f387e2e8f81b09f7d8e1df880a110b35b355abca0f0ebc5f361e",
+      "scenario_group_id": "no_request",
+      "split": "tuning",
+      "pilot": true
+    },
+    {
+      "conversation_id": "p4-ru-001",
+      "language": "RU",
+      "channel": "voice call",
+      "messages": 45,
+      "transcript_hash": "2413fd98f2def52748d0d1cea7a066dc760a559e5edeb12583d90a953dc00ae6",
+      "scenario_group_id": "advice_service_call",
+      "split": "tuning",
+      "pilot": true
+    },
+    {
+      "conversation_id": "p1-kz-002",
+      "language": "KZ",
+      "channel": "agent chat",
+      "messages": 14,
+      "transcript_hash": "a75648f5e533c7bd9529e3e15fd34f878db46dcc894271cc74878e4f1d0d9558",
+      "scenario_group_id": "funding_details",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-en-005",
+      "language": "EN",
+      "channel": "agent chat",
+      "messages": 14,
+      "transcript_hash": "bde6a6b1a4a1d69650fd053bb7a40c30ffa6fafea72a84095011961a897c9767",
+      "scenario_group_id": "funding_details",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-ru-009",
+      "language": "RU",
+      "channel": "agent chat",
+      "messages": 16,
+      "transcript_hash": "f2956bff1597b01c79a44eb67bf6c4da0fd03bfeec83f77940e1a9cba94382ea",
+      "scenario_group_id": "restriction_identity",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-kz-015",
+      "language": "KZ",
+      "channel": "agent chat",
+      "messages": 14,
+      "transcript_hash": "eeb6e870b946da3e159328a90e2676f610a669890df28ee3482126f3854a2d68",
+      "scenario_group_id": "restriction_identity",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-en-014",
+      "language": "EN",
+      "channel": "agent chat",
+      "messages": 15,
+      "transcript_hash": "7ede32e04b4ed5f8ad4c4d51cd24f61af066297da8ae61d942fa908e8b571180",
+      "scenario_group_id": "restriction_identity",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-kz-014",
+      "language": "KZ",
+      "channel": "agent chat",
+      "messages": 12,
+      "transcript_hash": "2208dbc600dbc5c7e8e18dcbb587484088e12314789b6ff8dafc6b0041d34b7c",
+      "scenario_group_id": "form_language",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-en-011",
+      "language": "EN",
+      "channel": "agent chat",
+      "messages": 12,
+      "transcript_hash": "60e5eac08d28eec63e821454ac22b54e75110f49dcc4a3be71c2842aaabc9a2c",
+      "scenario_group_id": "form_language",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-en-009",
+      "language": "EN",
+      "channel": "agent chat",
+      "messages": 12,
+      "transcript_hash": "203acba998eb61694a2950a92fc2714c71be9d0b236570f57ec0a93372dca32e",
+      "scenario_group_id": "security_search_margin",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-ru-018",
+      "language": "RU",
+      "channel": "agent chat",
+      "messages": 13,
+      "transcript_hash": "5f49af71e7766feadab50f1a97f66bc22b0c566a0701ad24a0cc44bcf0133817",
+      "scenario_group_id": "order_processing",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p4-ru-002",
+      "language": "RU",
+      "channel": "voice call",
+      "messages": 73,
+      "transcript_hash": "beb49cf150b1769a2328af3a29a7dc7fa8ddde2da42859f983c1e98794e92b3b",
+      "scenario_group_id": "order_processing",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p4-ru-003",
+      "language": "RU",
+      "channel": "voice call",
+      "messages": 78,
+      "transcript_hash": "477d8e1227f3a5c7734e91d3773826068c4cca37dbe240a56bfc74dc2fa31291",
+      "scenario_group_id": "order_processing",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p4-ru-004",
+      "language": "RU",
+      "channel": "voice call",
+      "messages": 115,
+      "transcript_hash": "2d3e20b8c30b2d05b46677c3d6ad0b97251abd61a485fbf57bb4376ec17a6c56",
+      "scenario_group_id": "order_processing",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p4-ru-005",
+      "language": "RU",
+      "channel": "voice call",
+      "messages": 75,
+      "transcript_hash": "b4bff05197d8d7b18dbdbe159d86d33676262a7e8489693498609b84c631e411",
+      "scenario_group_id": "registration_call",
+      "split": "holdout",
+      "pilot": false
+    },
+    {
+      "conversation_id": "p1-kz-011",
+      "language": "KZ",
+      "channel": "agent chat",
+      "messages": 14,
+      "transcript_hash": "a5b94e043b85444569805833a1ec4e02414b106e2203ddb343bce1f6144dc80d",
+      "scenario_group_id": "account_types",
+      "split": "holdout",
+      "pilot": false
+    }
+  ],
+  "counts": {
+    "tuning": 12,
+    "holdout": 14
+  },
+  "language_counts": {
+    "RU": 12,
+    "KZ": 7,
+    "EN": 7
+  },
+  "channel_counts": {
+    "agent chat": 21,
+    "voice call": 5
+  }
+}

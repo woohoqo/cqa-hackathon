@@ -266,8 +266,9 @@ def test_provider_parse_error_preserves_exact_raw_response(tmp_path):
 
 
 def test_unconfigured_provider_has_no_fabricated_result(tmp_path, monkeypatch):
-    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    # Explicit blanks prevent local .env credentials from enabling a real request.
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+    monkeypatch.setenv("GEMINI_MODEL", "")
     with TestClient(application(tmp_path, evaluator=None)) as client:
         conversation = post_conversation(client)
         batch = enqueue(client, [conversation], official(client)["id"])

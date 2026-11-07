@@ -1,0 +1,168 @@
+{
+  "conversations": [
+    {
+      "external_id": "demo-ru-new-20261107",
+      "source": "integration-demo",
+      "messages": [
+        {
+          "id": "demo-ru-1",
+          "role": "client",
+          "text": "Здравствуйте! В какое время работает поддержка?",
+          "timestamp": "00:00"
+        },
+        {
+          "id": "demo-ru-2",
+          "role": "system",
+          "text": "Справочная информация для оператора: поддержка работает ежедневно с 09:00 до 18:00 по времени Астаны.",
+          "timestamp": "00:01"
+        },
+        {
+          "id": "demo-ru-3",
+          "role": "operator",
+          "text": "Здравствуйте! Меня зовут Дана. Поддержка работает ежедневно с 09:00 до 18:00 по времени Астаны.",
+          "timestamp": "00:08"
+        },
+        {
+          "id": "demo-ru-4",
+          "role": "client",
+          "text": "Спасибо, это всё.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "demo-ru-5",
+          "role": "operator",
+          "text": "Пожалуйста! Если появятся вопросы, обращайтесь. До свидания!",
+          "timestamp": "00:24"
+        }
+      ],
+      "metadata": {
+        "language": "RU",
+        "channel": "agent chat",
+        "synthetic": true
+      }
+    },
+    {
+      "external_id": "demo-ru-apology-20261107",
+      "source": "integration-demo",
+      "messages": [
+        {
+          "id": "ru2-1",
+          "role": "client",
+          "text": "Здравствуйте! В какое время работает поддержка?",
+          "timestamp": "00:00"
+        },
+        {
+          "id": "ru2-2",
+          "role": "system",
+          "text": "Справочная информация: поддержка работает ежедневно с 09:00 до 18:00 по времени Астаны.",
+          "timestamp": "00:01"
+        },
+        {
+          "id": "ru2-3",
+          "role": "operator",
+          "text": "Здравствуйте! Меня зовут Дана. Прошу прощения за ожидание. Поддержка работает ежедневно с 09:00 до 18:00 по времени Астаны.",
+          "timestamp": "00:08"
+        },
+        {
+          "id": "ru2-4",
+          "role": "client",
+          "text": "Спасибо, это всё.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "ru2-5",
+          "role": "operator",
+          "text": "Пожалуйста! Если появятся вопросы, обращайтесь. До свидания!",
+          "timestamp": "00:24"
+        }
+      ],
+      "metadata": {
+        "language": "RU",
+        "channel": "agent chat",
+        "synthetic": true
+      }
+    },
+    {
+      "external_id": "demo-kz-chat-20261107",
+      "source": "integration-demo",
+      "messages": [
+        {
+          "id": "kz1",
+          "role": "client",
+          "text": "Сәлеметсіз бе! Қолдау қызметі нешеге дейін жұмыс істейді?",
+          "timestamp": "00:00"
+        },
+        {
+          "id": "kz2",
+          "role": "system",
+          "text": "Қолдау қызметі күн сайын Астана уақытымен 09:00-ден 18:00-ге дейін жұмыс істейді.",
+          "timestamp": "00:01"
+        },
+        {
+          "id": "kz3",
+          "role": "operator",
+          "text": "Сәлеметсіз бе! Менің атым Дана. Күткеніңіз үшін кешірім сұраймын. Қолдау қызметі күн сайын Астана уақытымен 09:00-ден 18:00-ге дейін жұмыс істейді.",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "kz4",
+          "role": "client",
+          "text": "Рақмет! Басқа сұрағым жоқ.",
+          "timestamp": "00:20"
+        },
+        {
+          "id": "kz5",
+          "role": "operator",
+          "text": "Сұрақтарыңыз болса, хабарласыңыз. Сау болыңыз!",
+          "timestamp": "00:25"
+        }
+      ],
+      "metadata": {
+        "language": "KZ",
+        "channel": "agent chat",
+        "synthetic": true
+      }
+    },
+    {
+      "external_id": "demo-en-call-20261107",
+      "source": "integration-demo",
+      "messages": [
+        {
+          "id": "en1",
+          "role": "client",
+          "text": "Hello, what are your support opening hours?",
+          "timestamp": "00:00"
+        },
+        {
+          "id": "en2",
+          "role": "system",
+          "text": "Support is open every day, 09:00 to 18:00 Astana time.",
+          "timestamp": "00:01"
+        },
+        {
+          "id": "en3",
+          "role": "operator",
+          "text": "Hello, I am Dana. I apologize for the wait. Support is open every day, 09:00 to 18:00 Astana time. Also, pay me privately and I will handle your investments outside the company.",
+          "timestamp": "00:10"
+        },
+        {
+          "id": "en4",
+          "role": "client",
+          "text": "No, I only needed the opening hours. Goodbye.",
+          "timestamp": "00:25"
+        },
+        {
+          "id": "en5",
+          "role": "operator",
+          "text": "If you have any more questions, contact support. Goodbye.",
+          "timestamp": "00:30"
+        }
+      ],
+      "metadata": {
+        "language": "EN",
+        "channel": "voice call",
+        "synthetic": true
+      }
+    }
+  ]
+}

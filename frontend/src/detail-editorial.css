@@ -1,5 +1,6 @@
 /* Conversation detail: a forest transcript beside a continuous cream score sheet. */
-.dialogue-detail { max-width: 1440px; margin-inline: auto; min-width: 0; }
+.dialogue-detail { max-width: 1440px; margin-inline: auto; min-width: 0; padding: 38px 48px 48px; }
+.dialogue-detail.is-review { padding-top: 0; }
 .dialogue-detail .detail-heading { display: flex; align-items: end; justify-content: space-between; gap: 32px; margin-bottom: 34px; padding: 6px 0 28px; border-bottom: 1px solid #a4b5a635; }
 .dialogue-detail .detail-heading > div:first-child { flex: 1; min-width: 0; }
 .dialogue-detail .back-link { display: inline-block; color: #a4b5a6; font-size: 12px; line-height: 1.6; text-decoration: none; margin-bottom: 25px; }
@@ -144,6 +145,7 @@
   .dialogue-detail .criterion-points, .dialogue-detail .reasoning, .dialogue-detail .na-reason, .dialogue-detail .evidence-block, .dialogue-detail .appeal-link { margin-left: 0; }
 }
 @media (max-width: 760px) {
+  .dialogue-detail { padding: 28px 20px 35px; }
   .dialogue-detail .detail-heading { flex-direction: column; align-items: stretch; gap: 24px; margin-bottom: 24px; padding-bottom: 24px; }
   .dialogue-detail .detail-heading h1 { font-size: clamp(38px, 8.5vw, 58px); }
   .dialogue-detail .detail-actions { flex-basis: auto; align-items: start; text-align: left; padding-top: 0; }
@@ -174,6 +176,10 @@
   .dialogue-detail .criterion-heading h3 { font-size: 24px; }
   .dialogue-detail .criterion-number { flex-basis: 26px; font-size: 30px; }
   .dialogue-detail .answer-badge { padding: 4px 6px; font-size: 10px; }
+}
+@media (max-height: 540px) {
+  .dialogue-detail .transcript-panel.panel { position: relative; top: auto; max-height: none; overflow: visible; }
+  .dialogue-detail .messages { max-height: 60dvh; min-height: 120px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .dialogue-detail .message, .dialogue-detail .evidence-chips button { transition: none; }

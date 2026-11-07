@@ -246,6 +246,14 @@ async def evaluate_dialogue(conversation: Conversation, checklist: ChecklistVers
                 )
             raise last_error
         raise AIProviderError("provider_error", "AI не вернул оценку.")
+    except asyncio.CancelledError as exc:
+        # Preserve cancellation semantics: the backend may be enforcing its own
+        # deadline or shutting down. Its await wrapper can snapshot these fields
+        # before wait_for converts cancellation into TimeoutError. The in-flight
+        # attempt has already been audited and its connection lease released.
+        exc.execution = execution()
+        exc.raw_response = last_raw
+        raise
     except TimeoutError:
         raise AIProviderError("ai_timeout", "Превышено общее время оценки AI.", retryable=True,
                               raw_response=last_raw, execution=execution()) from None

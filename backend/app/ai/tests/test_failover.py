@@ -295,6 +295,95 @@ def test_total_deadline_includes_inflight_request_and_prevents_backup_spend(monk
     assert error.value.execution.duration_ms < 1000
 
 
+@pytest.mark.parametrize("backend_deadline", [False, True])
+@pytest.mark.parametrize("previous_invalid_response", [False, True])
+def test_external_cancellation_keeps_metadata_and_raw_without_suppressing_cancel(
+    monkeypatch, settings, backend_deadline, previous_invalid_response,
+):
+    invalid_raw = " \n{synthetic invalid response untouched\r\n "
+    keys = []
+    captured = {}
+
+    async def run():
+        in_flight = asyncio.Event()
+
+        async def handler(request):
+            keys.append(request.headers["x-goog-api-key"])
+            if previous_invalid_response and len(keys) == 1:
+                return success(raw=invalid_raw)
+            in_flight.set()
+            await asyncio.Future()  # Only cancellation ends this synthetic request.
+
+        mock_clients(monkeypatch, handler)
+
+        async def backend_wrapper():
+            try:
+                return await service.evaluate_dialogue(conversation(), checklist())
+            except asyncio.CancelledError as exc:
+                captured["execution"] = exc.execution
+                captured["raw_response"] = exc.raw_response
+                raise
+
+        task = asyncio.create_task(backend_wrapper())
+        await asyncio.wait_for(in_flight.wait(), 1)
+        if backend_deadline:
+            with pytest.raises(TimeoutError):
+                await asyncio.wait_for(task, 0.02)
+        else:
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await task
+        assert task.cancelled()
+
+    asyncio.run(run())
+    execution = captured["execution"]
+    expected_count = 2 if previous_invalid_response else 1
+    assert keys == [PRIMARY] * expected_count
+    assert len(execution.attempts) == expected_count
+    assert execution.attempts[-1].status == "cancelled"
+    assert execution.attempts[-1].error_code == "ai_cancelled"
+    assert execution.total_tokens is None and execution.cost_usd is None
+    assert captured["raw_response"] == (invalid_raw if previous_invalid_response else None)
+    assert len(records(settings)) == expected_count
+    assert all(row["run_id"] == execution.run_id for row in records(settings))
+    assert service.request_gate._inflight == {}
+
+
+def test_cancellation_while_waiting_for_gate_has_no_fake_attempt(monkeypatch, settings):
+    keys = []
+    mock_clients(monkeypatch, lambda request: keys.append(request.headers["x-goog-api-key"]) or success())
+
+    async def run():
+        gate = service.request_gate
+        lease = await gate.acquire_connection(settings.connections()[0], settings.model, 0)
+        captured = {}
+        entered = asyncio.Event()
+
+        async def wrapped():
+            entered.set()
+            try:
+                await service.evaluate_dialogue(conversation(), checklist())
+            except asyncio.CancelledError as exc:
+                captured["execution"] = exc.execution
+                captured["raw_response"] = exc.raw_response
+                raise
+
+        task = asyncio.create_task(wrapped())
+        await entered.wait()
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        assert captured["execution"].attempts == []
+        assert captured["execution"].selected_connection is None
+        assert captured["raw_response"] is None
+        assert keys == [] and records(settings) == []
+        gate.release_connection(lease)
+        assert (await service.evaluate_dialogue(conversation(), checklist())).execution.attempts[0].status == "completed"
+
+    asyncio.run(run())
+    assert keys == [PRIMARY]
+
+
 def test_concurrent_jobs_do_not_storm_disabled_primary(monkeypatch, settings):
     calls = []
     active = {}

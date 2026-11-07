@@ -1,5 +1,6 @@
 import type { Appeal, AppealCreate, ChecklistCreate, ChecklistVersion, Conversation, ConversationInput, Evaluation, EvaluationBatch, ImportResult, ReviewDecision, ReviewDecisionCreate } from './types';
 import { fetchEvaluationExport, type ExportFormat } from './downloads';
+import { organizerImportRequest } from './organizerImport';
 
 const base = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 export class ApiError extends Error {
@@ -43,7 +44,7 @@ export const api = {
   evaluate: (conversation_ids: string[], checklist_id: string) => post<EvaluationBatch>('/evaluations', { conversation_ids, checklist_id }),
   getBatch: (key: string) => request<EvaluationBatch>(`/batches/${id(key)}`),
   importJson: (conversations: ConversationInput[]) => post<ImportResult>('/imports/json', { conversations }),
-  importDev: (group_id = 'DEV') => post<ImportResult>('/imports/dev', { group_id }),
+  importDev: (group_id = 'DEV', api_url = '') => post<ImportResult>('/imports/dev', organizerImportRequest(group_id, api_url)),
   listAppeals: (key: string) => request<Appeal[]>(`/evaluations/${id(key)}/appeals`),
   listDecisions: (key: string) => request<ReviewDecision[]>(`/evaluations/${id(key)}/decisions`),
   createAppeal: (key: string, input: AppealCreate) => post<Appeal>(`/evaluations/${id(key)}/appeals`, input),

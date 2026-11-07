@@ -13,14 +13,42 @@ from pathlib import Path
 from http.cookies import CookieError, SimpleCookie
 from urllib.parse import parse_qs, urlsplit
 
+from dotenv import load_dotenv
 from starlette.datastructures import Headers
 from starlette.responses import HTMLResponse, JSONResponse, RedirectResponse
+
+from .errors import AppError
+from .import_url import valid_organizer_url
 
 ROOT = Path(__file__).resolve().parents[2]
 NO_STORE = {"Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow", "X-Frame-Options": "DENY",
             "Referrer-Policy": "same-origin", "X-Content-Type-Options": "nosniff"}
 COOKIE_NAME = "__Host-cqa_demo"
 SESSION_SECONDS = 8 * 60 * 60
+
+
+def organizer_endpoint(value: str):
+    """Keep only the trusted destination; never retain its query/signature."""
+    if not valid_organizer_url(value):
+        return None
+    parsed = urlsplit(value)
+    if parsed.port not in (None, 443):
+        return None
+    return parsed.hostname.lower(), parsed.path or "/"
+
+
+def organizer_import_guard(configured_url: str):
+    endpoint = organizer_endpoint(configured_url)
+
+    def guard(request_url: str):
+        if not request_url:
+            raise AppError(422, "demo_api_url_required", "Вставьте полную ссылку API организаторов в поле выше. В общем демо ссылка не подставляется с сервера.")
+        if endpoint is None:
+            raise AppError(403, "demo_organizer_not_configured", "Владелец сайта ещё не настроил адрес API организаторов для общего демо.")
+        if organizer_endpoint(request_url) != endpoint:
+            raise AppError(403, "demo_organizer_url_denied", "Ссылка не соответствует API организаторов, разрешённому на этом сайте. Вставьте полную ссылку из руководства.")
+
+    return guard
 
 
 class DemoAccess:
@@ -148,12 +176,6 @@ class DemoAccess:
                 headers=NO_STORE)
             await response(scope, receive, send)
             return
-        if scope["path"].rstrip("/") == "/api/v1/imports/dev":
-            await JSONResponse({"error": {"code": "demo_dev_import_disabled",
-                "message": "Organizer data is disabled in the shared demo. Import synthetic JSON.",
-                "retryable": False}}, status_code=403, headers=NO_STORE)(scope, receive, send)
-            return
-
         async def secure_send(message):
             if message["type"] == "http.response.start":
                 replace_names = {k.lower().encode() for k in NO_STORE}
@@ -169,6 +191,9 @@ def create_demo_app():
     password = os.environ.get("CQA_DEMO_PASSWORD", "")
     if len(password) < 20:
         raise RuntimeError("Start the protected demo with python -m scripts.run_demo")
+    load_dotenv(ROOT / ".env", override=False)
+    # Owner-approved exact HTTPS endpoint. The signed URL itself is never a fallback in demo.
+    guard = organizer_import_guard(os.getenv("CQA_DEMO_ORGANIZER_ENDPOINT") or os.getenv("DEV_API_URL", ""))
     # Isolate settings BEFORE importing main (which constructs its normal app at import time).
     os.environ["DATABASE_PATH"] = str(ROOT / "data" / "demo" / "cqa.sqlite3")
     os.environ["DEV_API_URL"] = ""
@@ -179,7 +204,7 @@ def create_demo_app():
 
     settings = replace(Settings.from_env(), database_path=os.environ["DATABASE_PATH"],
                        dev_api_url="", cors_origins=[], ai_concurrency=1)
-    app = create_app(settings=settings, frontend_dist=str(ROOT / "frontend" / "dist"))
+    app = create_app(settings=settings, frontend_dist=str(ROOT / "frontend" / "dist"), organizer_url_guard=guard)
     original_lifespan = app.router.lifespan_context
 
     @asynccontextmanager

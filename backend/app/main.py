@@ -5,6 +5,7 @@ import json
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from pathlib import Path
+from typing import Callable
 
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
@@ -24,7 +25,7 @@ from .storage import Database
 
 
 def create_app(*, database_path: str | None = None, evaluator=None, settings: Settings | None = None,
-               frontend_dist: str | None = None) -> FastAPI:
+               frontend_dist: str | None = None, organizer_url_guard: Callable[[str], None] | None = None) -> FastAPI:
     config = settings or Settings.from_env()
     if database_path is not None:
         config = replace(config, database_path=database_path)
@@ -46,7 +47,7 @@ def create_app(*, database_path: str | None = None, evaluator=None, settings: Se
             await asyncio.gather(*workers, return_exceptions=True)
 
     app = FastAPI(title="CQA evaluation API", version="1.0.0", lifespan=lifespan,
-                  responses={status: {"model": ErrorResponse} for status in (404, 409, 422, 502, 503)})
+                  responses={status: {"model": ErrorResponse} for status in (403, 404, 409, 422, 502, 503)})
     app.state.service = service
     app.add_middleware(CORSMiddleware, allow_origins=config.cors_origins,
                        allow_methods=["GET", "POST"], allow_headers=["Content-Type"],
@@ -84,7 +85,11 @@ def create_app(*, database_path: str | None = None, evaluator=None, settings: Se
 
     @app.post("/api/v1/imports/dev", response_model=ImportResult)
     async def import_dev(body: DevImportRequest = DevImportRequest()):
-        return service.import_conversations(await fetch_organizer(config.dev_api_url, body.group_id))
+        # The override is request-scoped: never save it in settings, files or the database.
+        url = body.api_url if body.api_url is not None else config.dev_api_url
+        if organizer_url_guard is not None:
+            organizer_url_guard(url)
+        return service.import_conversations(await fetch_organizer(url, body.group_id))
 
     @app.post("/api/v1/checklists", response_model=ChecklistVersion, status_code=201)
     def create_checklist(body: ChecklistCreate):

@@ -6,7 +6,9 @@ from enum import Enum
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, field_validator, model_validator
+
+from .import_url import valid_organizer_url
 
 
 def utcnow() -> datetime:
@@ -253,6 +255,20 @@ class ImportRequest(Contract):
 
 class DevImportRequest(Contract):
     group_id: Annotated[str, Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")] = "DEV"
+    api_url: Annotated[str | None, Field(max_length=8192, repr=False,
+        description="Optional HTTPS organizer URL for this request only; not persisted. Omit to use server configuration.")] = None
+
+    @field_validator("api_url", mode="before")
+    @classmethod
+    def strip_optional_url(cls, value):
+        return (value.strip() or None) if isinstance(value, str) else value
+
+    @field_validator("api_url")
+    @classmethod
+    def valid_request_url(cls, value):
+        if value is not None and not valid_organizer_url(value):
+            raise ValueError("Use an absolute HTTPS URL without credentials, fragments or whitespace")
+        return value
 
 
 class ImportResult(Contract):

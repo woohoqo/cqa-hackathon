@@ -26,7 +26,9 @@ The exact descriptions, sections and conditions are in the configuration, expose
 - The paid-model handoff must document model name and approximate full evaluation cost across all calls.
   Neither a confidence threshold nor a particular export format/quality metric is specified in the PDFs.
 
-Organizer API: server-side GET of local `DEV_API_URL`. Request `group_id` defaults to DEV;
+Organizer API: server-side GET using a request-scoped HTTPS `api_url` pasted in the UI,
+or local `DEV_API_URL` as a fallback in localhost mode. Shared demo requires an explicit URL
+matching its owner-configured exact endpoint. Request `group_id` defaults to DEV;
 only this query parameter is changed for the future control set. Success envelope:
 `{error:"",isSuccess:true,data:{dataset_group_id,total_records,records:[...]}}`.
 Each record has `conversation_id`, `channel`, `language`, `transcript` array of

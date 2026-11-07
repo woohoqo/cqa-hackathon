@@ -41,7 +41,7 @@ export const api = {
   evaluate: (conversation_ids: string[], checklist_id: string) => post<EvaluationBatch>('/evaluations', { conversation_ids, checklist_id }),
   getBatch: (key: string) => request<EvaluationBatch>(`/batches/${id(key)}`),
   importJson: (conversations: ConversationInput[]) => post<ImportResult>('/imports/json', { conversations }),
-  importDev: () => post<ImportResult>('/imports/dev', {}),
+  importDev: (group_id = 'DEV') => post<ImportResult>('/imports/dev', { group_id }),
   listAppeals: (key: string) => request<Appeal[]>(`/evaluations/${id(key)}/appeals`),
   listDecisions: (key: string) => request<ReviewDecision[]>(`/evaluations/${id(key)}/decisions`),
   createAppeal: (key: string, input: AppealCreate) => post<Appeal>(`/evaluations/${id(key)}/appeals`, input),

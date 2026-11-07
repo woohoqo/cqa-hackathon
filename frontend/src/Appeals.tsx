@@ -14,6 +14,7 @@ type AppealsPanelProps = {
   onEvidence: (ids: string[]) => void;
   reviewMode: boolean;
   initialCriterionId?: string;
+  onCriterionSelect?: (id: string) => void;
 };
 
 const roleLabels: Record<string, string> = {
@@ -29,7 +30,7 @@ function answerLabel(value: AnswerValue | undefined): string {
 
 function scoreLabel(value: number | null | undefined, flag: boolean): string {
   if (flag) return 'Без баллов';
-  return value == null ? 'Не рассчитано' : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })} балла`;
+  return value == null ? 'Не рассчитано' : `Баллы: ${value.toLocaleString('ru-RU', { maximumFractionDigits: 2 })}`;
 }
 
 function EvidenceLinks({ result, conversation, onEvidence }: {
@@ -161,7 +162,7 @@ function ReviewForm({ appeal, criterion, current, conversation, busy, onSave }: 
   </form>;
 }
 
-export function AppealsPanel({ evaluation, conversation, onUpdated, onEvidence, reviewMode, initialCriterionId }: AppealsPanelProps) {
+export function AppealsPanel({ evaluation, conversation, onUpdated, onEvidence, reviewMode, initialCriterionId, onCriterionSelect }: AppealsPanelProps) {
   const formId = useId();
   const [appeals, setAppeals] = useState<Appeal[]>([]);
   const [decisions, setDecisions] = useState<ReviewDecision[]>([]);
@@ -216,15 +217,18 @@ export function AppealsPanel({ evaluation, conversation, onUpdated, onEvidence, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [evaluation.id, evaluation.status, refresh]);
 
+  const requestedCriterionId = evaluation.checklist_snapshot.criteria.some(criterion => criterion.id === initialCriterionId) ? initialCriterionId : undefined;
   useEffect(() => {
-    if (initialCriterionId && evaluation.checklist_snapshot.criteria.some((criterion) => criterion.id === initialCriterionId)) {
-      setCriterionId(initialCriterionId);
-    }
-  }, [initialCriterionId, evaluation.checklist_snapshot]);
+    if (requestedCriterionId) setCriterionId(requestedCriterionId);
+  }, [requestedCriterionId]);
 
   const selectedCriterion = evaluation.checklist_snapshot.criteria.find((criterion) => criterion.id === criterionId);
   const existingAppeal = appeals.some((appeal) => appeal.criterion_id === criterionId && appeal.status === 'open');
   const selectedOriginal = evaluation.ai_draft?.criteria.find((result) => result.criterion_id === criterionId);
+  async function reloadAll() {
+    try { await Promise.all([refresh(), onUpdated()]); }
+    catch (cause) { if (mounted.current) setError(friendlyError(cause)); }
+  }
 
   async function createAppeal(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -295,10 +299,10 @@ export function AppealsPanel({ evaluation, conversation, onUpdated, onEvidence, 
     <div className="appeals-heading">
       <div><h2 id={`${formId}-heading`}>{reviewMode ? 'Проверка апелляций' : 'Апелляции'}</h2>
         <p className="appeals-muted">{evaluation.checklist_snapshot.name} · версия {evaluation.checklist_snapshot.version}</p></div>
-      <button type="button" className="button secondary" disabled={loading || busy !== null} onClick={() => void refresh()}>Обновить обращения</button>
+      <button type="button" className="button secondary" disabled={loading || busy !== null} onClick={() => void reloadAll()}>Обновить обращения</button>
     </div>
     {error && <div className="appeals-error" role="alert"><p>{error}</p>
-      {!busy && <button type="button" className="button secondary" onClick={() => void refresh()}>Повторить загрузку обращений</button>}
+      {!busy && <button type="button" className="button secondary" onClick={() => void reloadAll()}>Повторить загрузку обращений</button>}
     </div>}
     {notice && <p className="appeals-success" role="status">{notice}</p>}
     {loading && <p className="appeals-muted" role="status">Загружаем обращения и историю решений…</p>}
@@ -306,7 +310,7 @@ export function AppealsPanel({ evaluation, conversation, onUpdated, onEvidence, 
       <h3>Оспорить критерий</h3>
       <label className="field" htmlFor={`${formId}-criterion`}>Спорный критерий
         <select id={`${formId}-criterion`} value={criterionId} disabled={busy !== null || loading}
-          onChange={(event) => setCriterionId(event.target.value)}>
+          onChange={(event) => { setCriterionId(event.target.value); onCriterionSelect?.(event.target.value); }}>
           {evaluation.checklist_snapshot.criteria.map((criterion) => <option key={criterion.id} value={criterion.id}>{criterion.title}</option>)}
         </select>
       </label>

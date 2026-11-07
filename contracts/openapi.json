@@ -2053,6 +2053,19 @@
             "pattern": "^[A-Za-z0-9_-]+$",
             "title": "Group Id",
             "default": "DEV"
+          },
+          "api_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8192
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Url",
+            "description": "Optional HTTPS organizer URL for this request only; not persisted. Omit to use server configuration."
           }
         },
         "additionalProperties": false,

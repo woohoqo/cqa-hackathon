@@ -83,8 +83,9 @@ def test_cross_origin_mutations_rejected_before_data_changes(client, headers):
     assert client.get("/api/v1/conversations").json() == before
 
 
-def test_dev_import_cannot_fetch_private_organizer_data(client):
-    response = client.post("/api/v1/imports/dev", json={}, auth=("demo", PASSWORD))
+@pytest.mark.parametrize("body", [{}, {"api_url": "https://example.invalid/synthetic-override", "group_id": "DEV"}])
+def test_dev_import_cannot_fetch_private_organizer_data(client, body):
+    response = client.post("/api/v1/imports/dev", json=body, auth=("demo", PASSWORD))
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "demo_dev_import_disabled"
 

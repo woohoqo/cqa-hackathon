@@ -84,7 +84,9 @@ def create_app(*, database_path: str | None = None, evaluator=None, settings: Se
 
     @app.post("/api/v1/imports/dev", response_model=ImportResult)
     async def import_dev(body: DevImportRequest = DevImportRequest()):
-        return service.import_conversations(await fetch_organizer(config.dev_api_url, body.group_id))
+        # The override is request-scoped: never save it in settings, files or the database.
+        url = body.api_url if body.api_url is not None else config.dev_api_url
+        return service.import_conversations(await fetch_organizer(url, body.group_id))
 
     @app.post("/api/v1/checklists", response_model=ChecklistVersion, status_code=201)
     def create_checklist(body: ChecklistCreate):

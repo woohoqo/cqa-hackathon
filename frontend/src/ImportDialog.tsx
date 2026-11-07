@@ -8,6 +8,7 @@ export function ImportDialog({ onClose, onImported }: { onClose: () => void; onI
   const [mode, setMode] = useState<'json' | 'dev'>('json');
   const [text, setText] = useState('');
   const [groupId, setGroupId] = useState('DEV');
+  const [apiUrl, setApiUrl] = useState('');
   const [submitting, setBusy] = useState(false);
   const [reading, setReading] = useState(false);
   const busy = submitting || reading;
@@ -15,7 +16,7 @@ export function ImportDialog({ onClose, onImported }: { onClose: () => void; onI
   async function submit() {
     setError(''); setBusy(true);
     try {
-      const result = mode === 'dev' ? await api.importDev(groupId.trim()) : await api.importJson(parseImport(text));
+      const result = mode === 'dev' ? await api.importDev(groupId, apiUrl) : await api.importJson(parseImport(text));
       await onImported(result); onClose();
     } catch (err) { setError(friendlyError(err)); } finally { setBusy(false); }
   }
@@ -31,7 +32,21 @@ export function ImportDialog({ onClose, onImported }: { onClose: () => void; onI
       }} /></label>
       <label className="field">Или вставьте JSON<textarea rows={9} value={text} disabled={busy} spellCheck={false} onChange={e => setText(e.target.value)} placeholder={'{"conversations": [{"external_id": "…", "messages": […]}]}'} /></label>
       <p className="help">До 1000 диалогов за один импорт. Пример с вымышленными данными доступен в frontend/examples/.</p>
-    </> : <div className="import-dev"><div className="empty-icon"><Icon name="chat" size={26} /></div><h3>Набор организаторов</h3><p>Сервер загрузит указанный набор по настроенной ссылке. Если она не задана или истекла, появится сообщение с причиной.</p><label className="field">Группа набора<input value={groupId} maxLength={200} disabled={busy} onChange={e => setGroupId(e.target.value)} placeholder="DEV" /></label><p className="help">Для контрольного набора укажите group_id от организаторов. Ссылка хранится только на сервере.</p></div>}
+    </> : <div className="import-dev">
+      <div className="empty-icon"><Icon name="chat" size={26} /></div>
+      <h3>Набор организаторов</h3>
+      <p>Вставьте ссылку API и укажите группу набора. Сервер загрузит диалоги по этой ссылке.</p>
+      <label className="field">Ссылка API организаторов
+        <input type="url" value={apiUrl} maxLength={8192} disabled={busy} autoComplete="off" spellCheck={false}
+          onChange={e => setApiUrl(e.target.value)} placeholder="https://…" aria-describedby="import-url-help" />
+      </label>
+      <p id="import-url-help" className="help">Ссылка используется только для текущего импорта и очищается при закрытии окна. Если оставить поле пустым, используется настройка сервера.</p>
+      <label className="field">Группа набора
+        <input value={groupId} maxLength={100} disabled={busy} autoComplete="off" spellCheck={false}
+          onChange={e => setGroupId(e.target.value)} placeholder="DEV" aria-describedby="import-group-help" />
+      </label>
+      <p id="import-group-help" className="help">Только ID группы, например DEV или CONTROL_1. Для контрольного набора введите group_id от организаторов.</p>
+    </div>}
     {error && <ErrorNotice message={error} />}
     <div className="modal-actions"><button className="button secondary" onClick={onClose} disabled={busy}>Отмена</button><button className="button primary" disabled={busy || (mode === 'json' ? !text.trim() : !groupId.trim())} onClick={() => void submit()}>{busy ? 'Импортируем…' : 'Импортировать'}</button></div>
   </Modal>;

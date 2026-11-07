@@ -180,11 +180,49 @@ socket permission error 10013 to generativelanguage.googleapis.com:443. DNS and 
 asyncio initialization passed. This is an execution-environment network restriction, not
 evidence of a rejected API key, nonexistent model or exhausted quota.
 
-The attempt is recorded locally with null response/model metadata, null token counts and
-null cost; no actual model response or measured token usage was obtained. The secret and
-local smoke files are ignored by Git and were not published. A live check needs outbound
-HTTPS access to that host. Key validity, model access, server acceptance of the exact schema,
-latency, actual usage/cost and semantic accuracy on human labels remain unverified.
+The blocked attempt remains in the local ledger with null response/model metadata, null
+token counts and null cost. It is a separate run from the successful check below. The secret
+and local smoke files are ignored by Git and were not published.
+
+### Successful live smoke, 2026-11-07
+
+The user ran the prepared smoke script in ordinary Windows PowerShell, outside the restricted
+agent execution environment, at 17:23 Asia/Qyzylorda. The supplied output and the resulting
+local JSON artifact agree. One attempt completed with STOP using gemini-3.5-flash-lite,
+prompt cqa-single-pass-v1.0.0, in 5.766 seconds (whole evaluator, not an average latency).
+Reported usage: 2,416 prompt + 930 output = 3,346 total tokens. Cached-input, thinking and
+tool-input fields were not reported and remain null. The configured Free Tier rates are zero,
+but cost_usd remains null because the conservative cost calculator needs those missing
+counts; no invoice or billing-tier verification is claimed.
+
+The exact dynamically generated eight-criterion schema was accepted by the real API.
+Application validation accepted every current ID/value and evidence reference, including
+synthetic-contact-new-id. The operator did not receive credit for the bot greeting; lack
+of clarification and identity verification received explained N/A on this general-info
+dialogue. Consultation and clarity returned 20 and 10 respectively; closure passed and no
+gross violation was flagged. Missing-action region/anchor and original raw_response were
+preserved. A Russian case-ending defect in the projected anchor description was corrected
+after reviewing the output; model text and decisions are unchanged.
+
+Qualitative observations for human review (not ground-truth labels or accuracy metrics):
+- The consultation decision calls the answer accurate but cites only client/operator text.
+  The supporting synthetic schedule in system message s1 is omitted from its evidence IDs.
+- The missing greeting anchor names the right first operator message o1, but uses before
+  where the criterion calls for an action inside that message. Structural checks cannot
+  establish this semantic placement.
+- The empathy explanation cites absence of client dissatisfaction, which by itself does
+  not establish operator empathy. The offer of help in o2 is a more concrete basis for review.
+- The replacement ID is new, but its meaning is close to the original contact criterion;
+  radically changed meanings still have only mocked transport coverage.
+
+No prompt tuning or independent model vote was introduced from these observations.
+
+This verifies the configured key/model and schema on ONE synthetic Russian example, not
+accuracy against human labels. No fresh model call was made by the agent after the network
+denial. Kazakh/English behavior, adversarial transcripts, real rate-limit recovery, other
+checklist/schema shapes, broad latency/cost statistics and scoring accuracy remain unverified.
+The successful result does not remove the agent environment's outbound network restriction;
+run the backend in the user's normal environment or an authorized deployment with HTTPS access.
 
 QA coordination and proposed contract additions:
 https://github.com/woohoqo/cqa-hackathon/issues/2

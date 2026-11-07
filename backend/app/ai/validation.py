@@ -99,9 +99,9 @@ def validate_response(raw: str, conversation: Conversation, checklist: Checklist
         if decision.evidence_kind == "missing_action":
             if not checked or action is None or action.message_id not in checked:
                 raise InvalidResponse("missing_action_location")
-            positions_ru = {"before": "перед", "in": "в", "after": "после"}
+            positions_ru = {"before": "перед сообщением", "in": "в сообщении", "after": "после сообщения"}
             reasoning += (f" Проверенный участок: {checked[0]} — {checked[-1]}. "
-                          f"Ожидалось {positions_ru[action.position]} сообщении {action.message_id}: "
+                          f"Ожидалось {positions_ru[action.position]} {action.message_id}: "
                           f"{action.description}")
             evidence.extend([checked[0], checked[-1], action.message_id])
         elif action is not None:

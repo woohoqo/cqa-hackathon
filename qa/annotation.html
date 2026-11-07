@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; font-src 'none'; base-uri 'none'; form-action 'none'">
+<title>CQA · Независимая человеческая разметка</title>
+<style>
+:root{color-scheme:light;--ink:#172d32;--muted:#52666b;--line:#d5e1df;--green:#136453;--paper:#fff;--wash:#f1f6f4;--amber:#885810;--red:#9f3434}
+*{box-sizing:border-box}body{margin:0;background:var(--wash);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}header{background:#153f39;color:#fff;padding:22px 28px}header h1{font-size:24px;line-height:1.2;margin:3px 0 8px}header p{margin:0;max-width:1000px;color:#d9e9e3}.eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#a4ccc0}main{padding:20px 24px;max-width:1700px;margin:auto}.setup,.panel,.notice{background:var(--paper);border:1px solid var(--line);border-radius:12px}.setup{padding:18px;display:grid;grid-template-columns:repeat(3,minmax(190px,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:5px}.field label,.label{font-weight:650;font-size:13px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;border:1px solid #aabeb8;background:#fff;color:var(--ink);border-radius:6px;padding:9px}input[type=file]{padding:7px;font-size:13px}input[type=checkbox]{width:auto}textarea{resize:vertical;min-height:66px}input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid #87c7b4;outline-offset:2px}button{border:1px solid var(--green);background:var(--green);color:#fff;border-radius:7px;padding:9px 13px;cursor:pointer;font-weight:600}button.secondary{background:#fff;color:var(--green)}button:disabled{opacity:.5;cursor:not-allowed}.help{font-size:12px;color:var(--muted)}.notice{padding:12px 16px;margin:14px 0;color:var(--muted)}.notice strong{color:var(--ink)}.status{min-height:25px;margin:12px 2px;white-space:pre-wrap}.status.error{color:var(--red)}.status.ok{color:var(--green)}.toolbar{display:grid;grid-template-columns:160px minmax(250px,1fr) auto;gap:12px;align-items:end;margin:18px 0}.progress{font-size:13px;color:var(--muted);margin:0 0 14px}.workspace{display:grid;grid-template-columns:minmax(340px,1fr) minmax(460px,1.1fr);gap:18px;align-items:start}.panel{overflow:hidden}.panel-head{padding:17px 18px;border-bottom:1px solid var(--line)}.panel-head h2{font-size:18px;margin:0 0 5px}.panel-head p{margin:0;color:var(--muted);font-size:13px}.transcript{padding:15px;max-height:78vh;overflow:auto;position:sticky;top:10px}.empty{color:var(--muted);padding:30px 15px}.message{margin-bottom:10px;border-left:4px solid #bdcec9;padding:10px 12px;border-radius:4px;background:#f4f7f6;scroll-margin-top:18px}.message.operator{border-left-color:#1f7a62;background:#edf7f1}.message.system{border-left-color:#92989c;background:#f0f1f3}.message.bot{border-left-color:#b2a88f;background:#f8f7f3}.message.focused{outline:3px solid #dfad45}.message .meta{font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:5px}.message .text{white-space:pre-wrap;overflow-wrap:anywhere}.message .add-ref{font-size:11px;background:transparent;color:var(--green);border:0;padding:2px 4px;font-weight:600}.criteria{padding:0 18px}.criterion{border-bottom:1px solid var(--line);padding:17px 0}.criterion:last-child{border-bottom:0}.criterion h3{font-size:15px;margin:0 0 7px}.criterion .rule{font-size:13px;color:var(--muted);margin:0 0 12px}.criterion-grid{display:grid;grid-template-columns:130px 1fr;gap:10px}.criterion .comments{margin-top:10px}.dispute{display:flex;gap:7px;align-items:center;font-size:13px;margin:9px 0 5px}.dispute-reason[hidden]{display:none}.footer-actions{padding:18px;border-top:1px solid var(--line);background:#f8faf9}.buttons{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.total{font-size:20px;font-weight:700;margin-bottom:5px}.badge{display:inline-block;font-size:11px;padding:3px 7px;border-radius:4px;background:#e1eee8;color:#174e3e;margin-right:5px}.badge.holdout{background:#fff0cf;color:#76541e}.record-note{margin-top:9px;color:var(--amber);font-size:12px}.loading{opacity:.65;pointer-events:none}footer{color:var(--muted);font-size:12px;margin:20px 0 5px}details{font-size:13px}summary{cursor:pointer;font-weight:600}.check{accent-color:var(--green)}@media(max-width:1000px){.setup{grid-template-columns:1fr 1fr}.workspace{grid-template-columns:1fr}.transcript{max-height:50vh}.toolbar{grid-template-columns:140px 1fr}.toolbar button{grid-column:1/-1}}@media(max-width:570px){main{padding:12px}header{padding:18px}.setup{grid-template-columns:1fr}.criterion-grid{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.panel-head,.criteria,.footer-actions{padding-left:12px;padding-right:12px}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">CQA / ручная проверка DEV</div><h1>Независимая разметка разговоров</h1><p>Оценивайте действия оператора. Реплики клиента, бота и системы дают контекст. Не открывайте ответы AI или другого разметчика до согласования.</p></header>
+<main>
+<section class="setup" aria-label="Исходные файлы и разметчик">
+  <div class="field"><label for="dataset">1. DEV, исходный JSON</label><input id="dataset" type="file" accept=".json,application/json"><span class="help">Читается локально. Аудиоссылки не показываются и не экспортируются.</span></div>
+  <div class="field"><label for="manifest">2. Manifest отбора, JSON</label><input id="manifest" type="file" accept=".json,application/json"><span class="help">Показываются только ID с совпавшим SHA-256 транскрипта. Устаревший manifest блокируется.</span></div>
+  <div class="field"><label for="annotator">3. Независимый разметчик</label><select id="annotator"><option value="annotator-A">Разметчик A</option><option value="annotator-B">Разметчик B</option></select><span class="help">Каждый человек работает в своей копии страницы и своём файле.</span></div>
+  <div class="field"><label for="checklistHash">Версия чек-листа (checklist_hash)</label><input id="checklistHash" type="text" autocomplete="off" spellcheck="false" placeholder="Точный hash начального чек-листа"><span class="help">Форма поддерживает восемь исходных критериев. Hash возьмите у QA.</span></div>
+  <div class="field"><label for="restore">Продолжить свою разметку</label><input id="restore" type="file" accept=".json,application/json"><span class="help">Только human_individual выбранного разметчика и текущего чек-листа.</span></div>
+  <div class="field"><label>Выгрузка результатов</label><button id="export" type="button" disabled>Экспортировать мой JSON</button><span id="exportState" class="help">Данные держатся в памяти вкладки. Экспортируйте перед закрытием.</span></div>
+</section>
+<div class="notice"><strong>Как работать вдвоём.</strong> A и B независимо размечают пилот. Затем QA сравнивает ответы, фиксирует разногласия и отдельно оформляет согласованную разметку. Этот файл никогда не помечает ответы как Ground Truth организаторов. Отложенные разговоры не передавайте разработчику промпта.</div>
+<div id="status" class="status" role="status" aria-live="polite"></div>
+<div class="toolbar">
+  <div class="field"><label for="filter">Часть набора</label><select id="filter"><option value="pilot">Пилот</option><option value="tuning">Настройка</option><option value="holdout">Отложенная</option><option value="all">Все в manifest</option></select></div>
+  <div class="field"><label for="conversation">Разговор</label><select id="conversation" disabled><option value="">Загрузите DEV и manifest</option></select></div>
+  <button id="next" class="secondary" type="button" disabled>Следующий →</button>
+</div>
+<p id="progress" class="progress">Пока нет данных.</p>
+<div class="workspace">
+  <section class="panel"><div class="panel-head"><h2 id="conversationTitle">Диалог</h2><p id="conversationMeta">ID сообщения сохраняется при экспорте как доказательство.</p><div id="splitNote" class="record-note"></div></div><div id="transcript" class="transcript"><div class="empty">Выберите локальные файлы, чтобы начать разметку.</div></div></section>
+  <section class="panel"><div class="panel-head"><h2>Восемь критериев</h2><p>Пустое поле означает «ещё не оценено». N/A — отдельный ответ с конкретным условием неприменимости.</p></div><div id="criteria" class="criteria"></div><div class="footer-actions"><div id="total" class="total">Итог: не рассчитан</div><div id="completion" class="help">0 из 8 ответов. Итог появится после заполнения всех критериев.</div><div class="buttons"><button id="saveComplete" type="button" disabled>Сохранить завершённым</button><button id="saveDraft" class="secondary" type="button" disabled>Сохранить черновик</button><button id="saveDisputed" class="secondary" type="button" disabled>Сохранить спорным</button></div><p class="help">Изменение ответа после завершения возвращает разговор в черновик. Сохранение здесь — в памяти вкладки; для файла нажмите «Экспортировать мой JSON».</p></div></section>
+</div>
+<footer><details><summary>Правила баллов и доказательств</summary><p>«Да» даёт полный вес, «Нет» — ноль. №4: вес × ответ / 20; №6: вес × ответ / 10. Итог = 100 × сумма баллов / сумма применимых весов, округление только в конце до двух знаков. №8 не меняет балл. При отсутствии применимого положительного веса итог отсутствует.</p><p>Для пропущенного действия укажите участок, где оно ожидалось. Для N/A объясните условие неприменимости. В доказательствах используйте ID существующих реплик через запятую. Можно нажать «Вставить ID» возле реплики после фокуса на поле доказательств. Не переносите персональные данные в комментарии. Порог первой реакции в 3 минуты, теги и вложения в оценку не входят.</p><p>SHA-256 вычисляется браузером по исходному массиву transcript: порядок сообщений и все поля, включая timestamp, сохраняются; ключи объектов сортируются, JSON без пробелов, UTF-8 без экранирования Unicode. Проверка выполняется до показа и повторно перед экспортом. audio_url в hash не входит. Страница не отправляет сетевых запросов, не использует localStorage и не воспроизводит записи. Автоматическое сохранение на диск отсутствует. Экспорт не содержит текстов диалогов или audio_url.</p></details></footer>
+</main>
+<script>
+'use strict';
+const CRITERIA = [
+  {id:'1',name:'Установление контакта',weight:10,options:['yes','no'],rule:'Да: оператор поздоровался на языке клиента и представился в первом ответе.'},
+  {id:'2',name:'Выявление потребности',weight:15,options:['yes','no','na'],rule:'Да: учёл известные детали и уточнил недостающее до ответа. N/A: данных хватало с самого начала.'},
+  {id:'3',name:'Идентификация',weight:20,options:['yes','no','na'],rule:'Да: проверка личности подтверждена до раскрытия данных или защищённого действия. N/A: запрос не требовал идентификации.'},
+  {id:'4',name:'Корректная и полная консультация',weight:20,max:20,options:[0,5,10,15,20,'na'],rule:'20 — все существенные вопросы закрыты или дан корректный следующий шаг; 15 — пропущена второстепенная деталь; 10 — остался существенный вопрос; 5 — общая подсказка без понятного действия; 0 — нет ответа по существу или ключевая рекомендация ошибочна. N/A: разговор закончился до формулировки запроса.'},
+  {id:'5',name:'Эмпатия и клиентоориентированность',weight:15,options:['yes','no'],rule:'Да: оператор вежлив и отреагировал на конкретную проблему, если клиент выразил недовольство или описал неудобство.'},
+  {id:'6',name:'Управление диалогом, скорость и грамотность',weight:15,max:10,options:[0,4,7,10],rule:'10 — ясно и связно, при явном ожидании предупредил; 7 — один заметный сбой; 4 — клиент переспрашивает из-за формулировок или порядка; 0 — ход диалога непонятен из-за бессвязности или противоречий.'},
+  {id:'7',name:'Завершение',weight:5,options:['yes','no','na'],rule:'Да: подвёл итог или предложил дальнейшую помощь и попрощался. N/A: разговор оборвался до возможности завершить его.'},
+  {id:'8',name:'Грубые ошибки',weight:0,options:['yes','no'],rule:'Да: выявлено оскорбление, предложение платной услуги в обход компании или раскрытие конфиденциальной информации. Нет: ни одно из трёх не выявлено. Флаг не меняет итог.'}
+];
+function answerValue(raw){ if(raw==='') return null; if(['yes','no','na'].includes(raw)) return raw; return Number(raw); }
+function answerLabel(value){ return ({yes:'Да',no:'Нет',na:'N/A'})[value] || String(value); }
+function messageId(conversationId,index){ return conversationId + ':m' + String(index+1).padStart(4,'0'); }
+function parseEvidence(raw){ return [...new Set(raw.split(/[\s,;]+/).map(x=>x.trim()).filter(Boolean))]; }
+function unicodeKeyOrder(a,b){
+  const ac=Array.from(a,c=>c.codePointAt(0)),bc=Array.from(b,c=>c.codePointAt(0));
+  for(let i=0;i<Math.min(ac.length,bc.length);i++)if(ac[i]!==bc[i])return ac[i]-bc[i];
+  return ac.length-bc.length;
+}
+function canonicalJSON(value){
+  if(value===null)return 'null';
+  if(Array.isArray(value))return '['+value.map(canonicalJSON).join(',')+']';
+  if(typeof value==='object')return '{'+Object.keys(value).sort(unicodeKeyOrder).map(key=>JSON.stringify(key)+':'+canonicalJSON(value[key])).join(',')+'}';
+  if(typeof value==='number' && !Number.isFinite(value))throw new Error('Hash не поддерживает нечисловые значения.');
+  if(!['string','number','boolean'].includes(typeof value))throw new Error('Hash требует JSON-значения.');
+  return JSON.stringify(value);
+}
+async function transcriptHash(transcript){
+  if(!globalThis.crypto?.subtle)throw new Error('Браузер не предоставляет SHA-256. Откройте файл в современном Edge или Chrome; проверка hash обязательна.');
+  const bytes=new TextEncoder().encode(canonicalJSON(transcript));
+  const digest=await globalThis.crypto.subtle.digest('SHA-256',bytes);
+  return Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+}
+function computeScore(answers){
+  let numerator=0,denominator=0;
+  for(const c of CRITERIA){
+    const value=answers[c.id];
+    if(!c.options.some(x=>x===value)) return null;
+    if(value==='na' || c.weight===0) continue;
+    denominator+=c.weight;
+    numerator+=c.weight*(c.max ? value/c.max : value==='yes' ? 1 : 0);
+  }
+  return denominator>0 ? Math.round((100*numerator/denominator + Number.EPSILON)*100)/100 : null;
+}
+function cleanCriterion(c){
+  return {criterion_id:String(c.criterion_id),answer:c.answer,evidence:c.evidence.map(e=>({message_id:e.message_id})),comment:c.comment,disputed:!!c.disputed,uncertainty_reason:c.uncertainty_reason};
+}
+function validateAnnotation(entry,record,manifestRow,annotator,hash,strict){
+  const errors=[];
+  if(entry.source!=='human_individual') errors.push('Источник должен быть human_individual.');
+  if(entry.annotator_id!==annotator) errors.push('Файл другого разметчика.');
+  if(entry.checklist_hash!==hash || !hash) errors.push('Версия чек-листа не совпадает или отсутствует.');
+  if(entry.transcript_hash!==manifestRow.transcript_hash) errors.push('Версия транскрипта не совпадает с manifest.');
+  if(!['draft','complete','disputed'].includes(entry.status)) errors.push('Неизвестный статус.');
+  if(!Array.isArray(entry.criteria) || entry.criteria.length!==CRITERIA.length){errors.push('Ожидаются восемь критериев.');return errors;}
+  const ids=new Set(record.transcript.map((m,i)=>messageId(record.conversation_id,i)));
+  const seen=new Set();
+  for(const c of entry.criteria){
+    const spec=CRITERIA.find(x=>x.id===String(c.criterion_id));
+    if(!spec || seen.has(spec.id)){errors.push('Неизвестный или повторный ID критерия.');continue;}
+    seen.add(spec.id);
+    if(c.answer!==null && !spec.options.some(x=>x===c.answer)) errors.push('№'+spec.id+': недопустимый ответ.');
+    if(typeof c.comment!=='string' || typeof c.uncertainty_reason!=='string' || typeof c.disputed!=='boolean') errors.push('№'+spec.id+': неверный формат комментариев.');
+    const ev=Array.isArray(c.evidence) ? c.evidence : [];
+    if(!Array.isArray(c.evidence) || ev.some(e=>!e || typeof e.message_id!=='string' || !ids.has(e.message_id))) errors.push('№'+spec.id+': доказательство ссылается на несуществующее сообщение.');
+    if(strict && (c.answer===null || !ev.length || !c.comment.trim())) errors.push('№'+spec.id+': нужны ответ, доказательство и комментарий.');
+    if(c.disputed && !c.uncertainty_reason.trim()) errors.push('№'+spec.id+': объясните спорное место.');
+  }
+  if(entry.status==='complete' && entry.criteria.some(c=>c.disputed)) errors.push('При спорном критерии сохраните статус «Спорный».');
+  if(entry.status==='disputed' && !entry.criteria.some(c=>c.disputed)) errors.push('Отметьте хотя бы один спорный критерий.');
+  return errors;
+}
+function startApp(){
+  const $=id=>document.getElementById(id);
+  const state={dataset:new Map(),manifest:new Map(),verified:new Set(),annotations:new Map(),current:null,editing:false,unexported:false,activeEvidence:null,annotator:'annotator-A',checklistHash:'',fields:new Map(),revision:0,datasetLoad:0,manifestLoad:0,exporting:false};
+  const node=(tag,text,className)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;return e;};
+  function notify(text,error=false){$('status').textContent=text;$('status').className='status '+(error?'error':'ok');}
+  function setUnexported(){state.unexported=true;state.revision++;$('exportState').textContent='Есть изменения, ещё не сохранённые в файл.';}
+  function makeField(label,id,element){const box=node('div',undefined,'field');const l=node('label',label);l.htmlFor=id;element.id=id;box.append(l,element);return box;}
+  function buildCriteria(){
+    for(const c of CRITERIA){
+      const section=node('section',undefined,'criterion');section.append(node('h3','№'+c.id+' · '+c.name+' · '+(c.weight?'вес '+c.weight:'без баллов')),node('p',c.rule,'rule'));
+      const grid=node('div',undefined,'criterion-grid');
+      const answer=node('select');answer.append(new Option('Не оценено',''));for(const v of c.options)answer.append(new Option(answerLabel(v),String(v)));
+      const evidence=node('input');evidence.type='text';evidence.placeholder='ID сообщений через запятую';evidence.spellcheck=false;
+      grid.append(makeField('Ответ','answer-'+c.id,answer),makeField('Доказательства','evidence-'+c.id,evidence));
+      const comment=node('textarea');comment.placeholder='Коротко обоснуйте ответ. Для N/A — условие; для пропуска — ожидаемое действие.';
+      const commentBox=makeField('Обоснование / комментарий','comment-'+c.id,comment);commentBox.classList.add('comments');
+      const disputeLabel=node('label',undefined,'dispute');const dispute=node('input');dispute.type='checkbox';dispute.className='check';disputeLabel.append(dispute,document.createTextNode('Спорное место — нужно согласование'));
+      const reason=node('textarea');reason.placeholder='Какие трактовки конкурируют и чего не хватает для решения?';reason.className='dispute-reason';reason.hidden=true;reason.setAttribute('aria-label','Причина разногласия, критерий '+c.id);
+      section.append(grid,commentBox,disputeLabel,reason);$('criteria').append(section);
+      const fields={answer,evidence,comment,dispute,reason};state.fields.set(c.id,fields);
+      for(const f of [answer,evidence,comment,reason])f.addEventListener('input',markEdit);
+      dispute.addEventListener('change',()=>{reason.hidden=!dispute.checked;markEdit();});
+      evidence.addEventListener('focus',()=>{state.activeEvidence=evidence;});
+      evidence.addEventListener('change',()=>highlightEvidence(parseEvidence(evidence.value)));
+    }
+    setEnabled(false);
+  }
+  function setEnabled(enabled){for(const f of state.fields.values())for(const e of Object.values(f))e.disabled=!enabled;for(const id of ['saveComplete','saveDraft','saveDisputed','next'])$(id).disabled=!enabled;}
+  function markEdit(){if(!state.current)return;state.editing=true;state.annotations.set(state.current,collect('draft'));setUnexported();updateScore();refreshProgress();}
+  function answersFromForm(){const result={};for(const c of CRITERIA)result[c.id]=answerValue(state.fields.get(c.id).answer.value);return result;}
+  function updateScore(){const answers=answersFromForm();const score=computeScore(answers);$('total').textContent='Итог: '+(score===null?'не рассчитан':score.toFixed(2).replace('.',',')+' / 100');const filled=Object.values(answers).filter(v=>v!==null).length;$('completion').textContent=filled+' из 8 ответов. Грубая ошибка: '+(answers['8']===null?'не оценено':answerLabel(answers['8']))+'.';}
+  function collect(status='draft'){
+    const r=state.dataset.get(state.current),m=state.manifest.get(state.current),answers=answersFromForm();
+    return {conversation_id:r.conversation_id,language:r.language,channel:r.channel,split:m.split,scenario_group_id:m.scenario_group_id,transcript_hash:m.transcript_hash,checklist_hash:$('checklistHash').value.trim(),annotator_id:state.annotator,source:'human_individual',status,answers,criteria:CRITERIA.map(c=>{const f=state.fields.get(c.id);return {criterion_id:c.id,answer:answers[c.id],evidence:parseEvidence(f.evidence.value).map(id=>({message_id:id})),comment:f.comment.value.trim(),disputed:f.dispute.checked,uncertainty_reason:f.reason.value.trim()};}),total:computeScore(answers)};
+  }
+  function stashDraft(){if(state.current && state.editing){state.annotations.set(state.current,collect('draft'));state.editing=false;}}
+  function save(status){if(!state.current)return;const item=collect(status);const problems=validateAnnotation(item,state.dataset.get(state.current),state.manifest.get(state.current),state.annotator,$('checklistHash').value.trim(),status==='complete');if(problems.length){notify(problems.join('\n'),true);return;}state.annotations.set(state.current,item);state.editing=false;setUnexported();refreshProgress();notify('Сохранено в памяти: '+item.conversation_id+' ('+status+'). Для сохранения на диск экспортируйте JSON.');}
+  function refreshProgress(){
+    const counts={draft:0,complete:0,disputed:0};for(const a of state.annotations.values())counts[a.status]++;
+    $('progress').textContent='В manifest: '+state.manifest.size+' · SHA-256 совпал: '+state.verified.size+' · '+state.annotator+': завершено '+counts.complete+', спорных '+counts.disputed+', черновиков '+counts.draft+'.';
+    $('export').disabled=state.exporting || (!state.annotations.size && !state.editing);
+  }
+  function verifyManifest(){
+    state.verified.clear();const mismatches=[],missing=[];
+    for(const [id,m]of state.manifest){const r=state.dataset.get(id);if(!r){missing.push(id);continue;}if(r.computed_transcript_hash!==m.transcript_hash){mismatches.push(id);continue;}state.verified.add(id);}
+    return {mismatches,missing};
+  }
+  function verificationNote(){const result=verifyManifest();return [...(result.mismatches.length?['SHA-256 НЕ совпал (разговоры заблокированы): '+result.mismatches.join(', ')]:[]),...(state.dataset.size && result.missing.length?['Нет в DEV: '+result.missing.join(', ')]:[])].join('\n');}
+  function visibleIds(){const filter=$('filter').value;return [...state.manifest.values()].filter(m=>state.verified.has(m.conversation_id) && (filter==='all' || filter==='pilot' && m.pilot===true || filter!=='pilot' && m.split===filter)).map(m=>m.conversation_id);}
+  function rebuildSelect(){
+    stashDraft();const ids=visibleIds();$('conversation').replaceChildren();
+    if(!ids.length){$('conversation').append(new Option('Нет разговоров в выбранной части',''));$('conversation').disabled=true;loadConversation(null);}
+    else{for(const id of ids){const r=state.dataset.get(id);$('conversation').append(new Option(id+' · '+r.language+' · '+r.channel,id));}$('conversation').disabled=false;const target=ids.includes(state.current)?state.current:ids[0];$('conversation').value=target;loadConversation(target);}
+    refreshProgress();
+  }
+  function loadConversation(id){
+    if(id && !state.verified.has(id))id=null;
+    state.current=id;state.editing=false;state.activeEvidence=null;$('transcript').replaceChildren();
+    const entry=state.annotations.get(id);
+    for(const c of CRITERIA){const f=state.fields.get(c.id),saved=entry?.criteria.find(x=>String(x.criterion_id)===c.id);f.answer.value=saved?.answer===null || saved?.answer===undefined?'':String(saved.answer);f.evidence.value=saved?.evidence.map(e=>e.message_id).join(', ')||'';f.comment.value=saved?.comment||'';f.dispute.checked=!!saved?.disputed;f.reason.value=saved?.uncertainty_reason||'';f.reason.hidden=!f.dispute.checked;}
+    setEnabled(!!id && !!$('checklistHash').value.trim());updateScore();
+    if(!id){$('conversationTitle').textContent='Диалог';$('conversationMeta').textContent='Выберите DEV и manifest.';$('splitNote').textContent='';$('transcript').append(node('div','Нет выбранного разговора.','empty'));return;}
+    const r=state.dataset.get(id),m=state.manifest.get(id);$('conversationTitle').textContent=id;$('conversationMeta').textContent=r.language+' · '+r.channel+' · '+r.transcript.length+' сообщений · группа '+m.scenario_group_id;
+    $('splitNote').textContent=(m.pilot?'ПИЛОТ · ':'')+(m.split==='holdout'?'ОТЛОЖЕННЫЙ НАБОР — только независимая разметка; не использовать для настройки промпта.':'НАСТРОЙКА · '+(entry?'Сохранённый статус: '+entry.status:'Разметка ещё не начата.'));
+    r.transcript.forEach((msg,index)=>{
+      const mid=messageId(id,index),block=node('article',undefined,'message '+(['operator','client','bot','system'].includes(msg.speaker)?msg.speaker:''));block.id='msg-'+index;block.dataset.messageId=mid;
+      const meta=node('div',undefined,'meta');meta.append(node('strong',String(msg.speaker||'[нет роли]')),node('span',String(msg.timestamp||'[нет времени]')),node('span',mid));const add=node('button','Вставить ID','add-ref');add.type='button';add.addEventListener('click',()=>{if(!state.activeEvidence){notify('Сначала нажмите поле «Доказательства» у нужного критерия.',true);return;}const existing=parseEvidence(state.activeEvidence.value);if(!existing.includes(mid))existing.push(mid);state.activeEvidence.value=existing.join(', ');state.activeEvidence.focus();markEdit();highlightEvidence(existing);});meta.append(add);block.append(meta,node('div',typeof msg.text==='string'?msg.text:'[нет текста]','text'));$('transcript').append(block);
+    });
+  }
+  function highlightEvidence(ids){for(const el of $('transcript').children)el.classList.toggle('focused',ids.includes(el.dataset.messageId));}
+  async function readJSON(input){const file=input.files?.[0];if(!file)return null;if(file.size>30*1024*1024)throw new Error('Файл больше 30 МБ.');return JSON.parse((await file.text()).replace(/^\uFEFF/,''));}
+  function canReplace(){if(state.annotations.size || state.editing)return window.confirm('Загрузка другого исходного файла очистит текущую разметку в памяти. Если она нужна, сначала отмените и экспортируйте JSON. Продолжить?');return true;}
+  function clearAnnotations(){state.annotations.clear();state.current=null;state.editing=false;state.unexported=false;state.revision++;$('exportState').textContent='Данные держатся в памяти вкладки. Экспортируйте перед закрытием.';}
+  $('dataset').addEventListener('change',async()=>{
+    const request=++state.datasetLoad;
+    try{
+      const obj=await readJSON($('dataset'));if(!obj || request!==state.datasetLoad)return;
+      if(!canReplace()){$('dataset').value='';return;}
+      if(obj.isSuccess===false)throw new Error('DEV содержит isSuccess=false.');
+      const records=obj.data?.records;if(!Array.isArray(records))throw new Error('Ожидается массив data.records.');
+      const map=new Map();
+      notify('Вычисляю SHA-256 исходных транскриптов…');
+      for(const r of records){
+        if(!r || typeof r.conversation_id!=='string' || !r.conversation_id || !Array.isArray(r.transcript) || map.has(r.conversation_id))throw new Error('Некорректная запись или повтор conversation_id.');
+        if(r.transcript.some(m=>!m || typeof m!=='object' || Array.isArray(m)))throw new Error('Некорректное сообщение в '+r.conversation_id);
+        const hash=await transcriptHash(r.transcript);if(request!==state.datasetLoad)return;
+        map.set(r.conversation_id,{conversation_id:r.conversation_id,language:String(r.language||''),channel:String(r.channel||''),transcript:r.transcript,computed_transcript_hash:hash});
+      }
+      clearAnnotations();state.dataset=map;const note=verificationNote();rebuildSelect();
+      notify('DEV загружен локально: '+map.size+' разговоров. Проверенные транскрипты готовы.'+(note?'\n'+note:''),!!note);
+    }catch(e){if(request===state.datasetLoad)notify('Не удалось загрузить DEV: '+e.message,true);}
+  });
+  $('manifest').addEventListener('change',async()=>{
+    const request=++state.manifestLoad;
+    try{
+      const obj=await readJSON($('manifest'));if(!obj || request!==state.manifestLoad)return;
+      if(!canReplace()){$('manifest').value='';return;}
+      if(!Array.isArray(obj.records))throw new Error('Ожидается массив records в manifest.');
+      const map=new Map();
+      for(const m of obj.records){
+        if(!m || typeof m.conversation_id!=='string' || map.has(m.conversation_id) || !['tuning','holdout'].includes(m.split) || typeof m.transcript_hash!=='string' || !/^[0-9a-f]{64}$/i.test(m.transcript_hash) || typeof m.scenario_group_id!=='string' || !m.scenario_group_id)throw new Error('Нужны уникальные conversation_id, split=tuning|holdout, scenario_group_id и 64-значный SHA-256 transcript_hash.');
+        map.set(m.conversation_id,{conversation_id:m.conversation_id,split:m.split,pilot:m.pilot===true,scenario_group_id:m.scenario_group_id,transcript_hash:m.transcript_hash.toLowerCase()});
+      }
+      const groups=new Map();for(const m of map.values()){if(groups.has(m.scenario_group_id) && groups.get(m.scenario_group_id)!==m.split)throw new Error('Одна scenario_group_id попала в обе части.');groups.set(m.scenario_group_id,m.split);}
+      clearAnnotations();state.manifest=map;
+      if(typeof obj.checklist_hash==='string' && obj.checklist_hash){$('checklistHash').value=obj.checklist_hash;state.checklistHash=obj.checklist_hash;}
+      const note=verificationNote();rebuildSelect();notify('Manifest загружен: '+map.size+' записей.'+(note?'\n'+note:''),!!note);
+    }catch(e){if(request===state.manifestLoad)notify('Не удалось загрузить manifest: '+e.message,true);}
+  });
+  $('annotator').addEventListener('change',()=>{const next=$('annotator').value;if((state.annotations.size || state.editing) && !window.confirm('Смена разметчика очистит ответы в памяти. Сначала экспортируйте свои ответы. Продолжить?')){$('annotator').value=state.annotator;return;}clearAnnotations();state.annotator=next;rebuildSelect();notify('Выбран '+next+'. Ответы другого разметчика не загружены.');});
+  $('checklistHash').addEventListener('change',()=>{const next=$('checklistHash').value.trim();if(next===state.checklistHash)return;if(state.annotations.size || state.editing){$('checklistHash').value=state.checklistHash;notify('Нельзя менять версию чек-листа у начатой разметки. Экспортируйте её и начните новую сессию.',true);return;}state.checklistHash=next;setEnabled(!!state.current && !!next);if(!next)notify('Введите checklist_hash, чтобы включить поля разметки.',true);});
+  $('filter').addEventListener('change',rebuildSelect);
+  $('conversation').addEventListener('change',()=>{stashDraft();loadConversation($('conversation').value||null);refreshProgress();});
+  $('next').addEventListener('click',()=>{stashDraft();const select=$('conversation');if(select.selectedIndex<select.options.length-1){select.selectedIndex++;loadConversation(select.value);refreshProgress();}else notify('Это последний разговор выбранной части. Экспортируйте разметку.');});
+  $('saveComplete').addEventListener('click',()=>save('complete'));
+  $('saveDraft').addEventListener('click',()=>save('draft'));
+  $('saveDisputed').addEventListener('click',()=>save('disputed'));
+  $('restore').addEventListener('change',async()=>{try{if(!state.dataset.size || !state.manifest.size)throw new Error('Сначала загрузите DEV и manifest.');const obj=await readJSON($('restore'));if(!obj)return;const hash=$('checklistHash').value.trim();if(obj.source!=='human_individual' || obj.annotator_id!==state.annotator || obj.checklist_hash!==hash || !hash)throw new Error('Источник, разметчик или версия чек-листа не совпадают. Не импортируйте ответы AI или другого человека.');if(!Array.isArray(obj.annotations))throw new Error('Нет массива annotations.');const imported=new Map();for(const e of obj.annotations){if(!e || !state.verified.has(e.conversation_id) || imported.has(e.conversation_id))throw new Error('ID отсутствует, SHA-256 транскрипта не подтверждён или ID повторяется.');const row=state.manifest.get(e.conversation_id),rec=state.dataset.get(e.conversation_id);const errors=validateAnnotation(e,rec,row,state.annotator,hash,e.status==='complete');if(errors.length)throw new Error(e.conversation_id+': '+errors.join(' '));const criteria=e.criteria.map(cleanCriterion),answers=Object.fromEntries(criteria.map(c=>[c.criterion_id,c.answer]));imported.set(e.conversation_id,{conversation_id:e.conversation_id,language:rec.language,channel:rec.channel,split:row.split,scenario_group_id:row.scenario_group_id,transcript_hash:row.transcript_hash,checklist_hash:hash,annotator_id:state.annotator,source:'human_individual',status:e.status,answers,criteria,total:computeScore(answers)});}stashDraft();const overlaps=[...imported.keys()].filter(id=>state.annotations.has(id));if(overlaps.length && !window.confirm('Импорт заменит '+overlaps.length+' уже сохранённых разговоров. Продолжить?'))return;for(const [id,e]of imported)state.annotations.set(id,e);state.editing=false;state.checklistHash=hash;loadConversation(state.current);setUnexported();refreshProgress();notify('Импортировано собственных разметок: '+imported.size+'. Итоги пересчитаны из ответов.');}catch(e){notify('Импорт отклонён: '+e.message,true);}finally{$('restore').value='';}});
+  $('export').addEventListener('click',async()=>{
+    if(state.exporting)return;
+    stashDraft();const hash=$('checklistHash').value.trim();
+    if(!hash){notify('Укажите точный checklist_hash перед экспортом.',true);return;}
+    if(!state.annotations.size){notify('Нет сохранённой разметки.',true);return;}
+    state.exporting=true;refreshProgress();const revision=state.revision;
+    try{
+      const annotations=JSON.parse(JSON.stringify([...state.annotations.values()]));
+      notify('Повторно проверяю SHA-256 перед экспортом…');
+      for(const a of annotations){
+        const record=state.dataset.get(a.conversation_id),row=state.manifest.get(a.conversation_id);
+        if(!record || !row)throw new Error(a.conversation_id+': нет исходного транскрипта или manifest.');
+        const currentHash=await transcriptHash(record.transcript);
+        if(revision!==state.revision)throw new Error('Данные изменились во время проверки. Повторите экспорт.');
+        if(currentHash!==row.transcript_hash || currentHash!==a.transcript_hash){
+          state.verified.delete(a.conversation_id);rebuildSelect();
+          throw new Error(a.conversation_id+': версия транскрипта изменилась. Экспорт заблокирован; нужен новый manifest и повторная разметка.');
+        }
+        const errors=validateAnnotation(a,record,row,state.annotator,hash,a.status==='complete');
+        if(errors.length)throw new Error('Исправьте '+a.conversation_id+': '+errors.join(' '));
+      }
+      const payload={qa_annotations_version:1,source:'human_individual',annotator_id:state.annotator,checklist_hash:hash,annotations};
+      const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'application/json;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='cqa-'+state.annotator+'-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);state.unexported=false;$('exportState').textContent='Экспорт запущен. Убедитесь, что браузер сохранил JSON.';notify('Экспорт содержит '+annotations.length+' разметок без текстов разговоров и аудиоссылок. SHA-256 повторно проверен.');
+    }catch(e){notify('Экспорт заблокирован: '+e.message,true);}finally{state.exporting=false;refreshProgress();}
+  });
+  window.addEventListener('beforeunload',event=>{if(state.unexported){event.preventDefault();event.returnValue='';}});
+  buildCriteria();
+}
+if(typeof document!=='undefined') startApp();
+</script>
+</body>
+</html>

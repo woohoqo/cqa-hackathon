@@ -3,7 +3,7 @@ import json
 
 from ..contracts import AnswerType, ChecklistVersion, Conversation
 
-PROMPT_VERSION = "cqa-single-pass-v1.1.0"
+PROMPT_VERSION = "cqa-single-pass-v1.1.1"
 
 SYSTEM_PROMPT = """You are a careful multilingual conversation-quality evaluator (Russian, Kazakh,
 English, including mixed-language dialogue). Evaluate the HUMAN OPERATOR using only the current
@@ -47,6 +47,28 @@ the language of the messages or the presence of an unrelated violation does not 
 Lack of proof, uncertainty, poor performance or an omitted required action alone is not an
 N/A condition. Do not infer na_condition_applies from a grade you have already selected.
 
+When the CURRENT criterion's N/A condition concerns whether initial information was sufficient,
+assess the facts already available to the OPERATOR to identify the client's request and answer
+it correctly. Do not assess whether the CLIENT already knew the answer. Needing an explanation
+or instructions is not itself missing input. A general or informational request is not itself
+proof of N/A: an unspecified attribute that changes the correct answer can still require
+clarification. Distinguish what was known initially from what was learned later. A necessary
+clarification question and the client's answer can establish which information was initially
+missing; an unnecessary question does not prove that information was missing. Apply these
+distinctions only to the meaning of the supplied condition, not as a new exemption for other
+criteria. Do not transfer one criterion's N/A condition to another.
+
+PERFORMANCE AND SCALE ANCHORS:
+After applicability, state the brief factual reasoning and source references BEFORE emitting
+the final value, for every answer type. For a scale, compare the facts with the CURRENT step
+descriptions supplied in the input and output schema. Explain which defining conditions of
+the chosen step are supported. A shared symptom alone does not justify a step whose other
+required conditions are absent; do not award partial credit merely because some response exists.
+Judge only the dimension defined by this criterion. When the checklist distinguishes factual
+correctness, completeness, clarity, or closure, a problem in one dimension is not automatically
+evidence of a problem in another. Do not replace a defined scale anchor with an overall impression
+of a good or bad conversation. Do not invent thresholds, interpolate, or alter the configured scale.
+
 EVIDENCE AND REASONING:
 Read the complete transcript in supplied order. Preserve original IDs and timestamp meanings.
 Credit operator actions only to the operator. Client, bot and system messages remain important
@@ -78,11 +100,16 @@ Return the schema-defined object with a criteria map keyed by exact current IDs.
   Select missing_action even for a partial scale score when the reason is an omitted action.
 - na_condition_met: null unless value is N/A; then identify the current condition and explain
   the concrete facts establishing it. Set evidence_kind=not_applicable and cite those facts.
+- value: emit last, after the applicability decision, factual reasoning and evidence checks.
 
 Before responding check coverage, exact allowed values, original message IDs, and whether
 each cited message actually supports the explanation. For every criterion allowing N/A,
 check that applicability.na_condition_applies is true IF AND ONLY IF value is "N/A".
 Do not alter an applicability finding merely to preserve a previously selected grade.
+Before claiming that an action or event is absent, re-check the full transcript and the cited
+region for evidence that it occurred. An explicit occurrence must not be denied because a
+different part of the conversation was poor. Respect the current rule's AND/OR alternatives;
+do not require every alternative when the rule accepts any one of them.
 Return JSON only.
 """
 
@@ -101,7 +128,11 @@ def build_schema(checklist: ChecklistVersion) -> dict:
     """Generate one closed, typed result per current criterion; no hardcoded IDs."""
     properties = {}
     for criterion in checklist.criteria:
-        value = ({"type": "number", "enum": [step.value for step in criterion.scale]}
+        value = ({"type": "number", "enum": [step.value for step in criterion.scale],
+                  "description": ("Select the current step supported by the preceding reasoning and evidence. "
+                                  "These are the complete current anchors, not weights: "
+                                  + json.dumps([step.model_dump(mode="json") for step in criterion.scale],
+                                               ensure_ascii=False, separators=(",", ":")))}
                  if criterion.answer_type == AnswerType.SCALE else {"type": "boolean"})
         if criterion.allow_na:
             value = {"anyOf": [value, {"type": "string", "enum": ["N/A"]}]}
@@ -120,7 +151,6 @@ def build_schema(checklist: ChecklistVersion) -> dict:
         } if criterion.allow_na else {"type": "null"})
         fields = {
             "applicability": applicability,
-            "value": value,
             "reasoning": {"type": "string"},
             "evidence_message_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1},
             "evidence_kind": {"type": "string", "enum": ["observed", "missing_action", "not_applicable"]},
@@ -137,6 +167,7 @@ def build_schema(checklist: ChecklistVersion) -> dict:
             "na_condition_met": ({"type": ["string", "null"],
                 "description": "Only explain applicability when value is the literal string N/A and evidence_kind is not_applicable. For any boolean or numeric value this MUST be null. A met N/A condition requires value N/A, never true."}
                 if criterion.allow_na else {"type": "null"}),
+            "value": value,
         }
         properties[criterion.id] = {
             "type": "object", "properties": fields, "required": list(fields), "additionalProperties": False,

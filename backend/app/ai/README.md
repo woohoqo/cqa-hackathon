@@ -6,7 +6,7 @@ its tested revision and distinguishes mocked tests from actual model calls. The 
 reports near the end of this file describe earlier revisions, not the current test coverage
 or a present network restriction. QA findings AI-QA-002/003 remain open accuracy limitations.
 
-## Applicability before grading — prompt v1.1.0
+## Applicability before grading — prompt v1.1.1
 
 Each criterion's internal model response now begins with a required `applicability` field.
 For `allow_na=true`, it contains `na_condition_applies`, a brief factual `reasoning` and
@@ -30,6 +30,16 @@ prove that the model's applicability decision is factually correct. Tests includ
 positive/negative controls and dynamic boolean, scale and flag criteria; they do not establish
 RU/KZ/EN accuracy. The integrator/QA report records the separately authorized, controlled live
 old/new comparison. No real model call was made while implementing this change.
+
+Version v1.1.1 further distinguishes the operator's initial information from the client's
+need to learn an answer, conditional on the meaning of the current N/A rule. It does not
+treat every informational request as N/A. For every answer type, reasoning and evidence
+precede the final value in the generated schema. Scale value schemas include the complete
+current step labels/descriptions, and instructions require the selected anchor to match
+the cited facts independently of other dimensions. Absence claims must be checked against
+the full transcript and the current rule's alternatives. These remain model instructions,
+not semantic corrections performed by the validator. Model/thinking/temperature settings
+are unchanged by this commit; any separate profile comparison must report its actual settings.
 
 ## Reserve connections (current implementation, 2026-11-08)
 

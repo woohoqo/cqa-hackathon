@@ -51,6 +51,37 @@ def test_applicability_is_required_first_and_rebuilt_from_replaced_condition():
         assert "applicability" in unchanged[identifier]["required"]
 
 
+@pytest.mark.parametrize("kind", ["boolean", "scale", "flag"])
+@pytest.mark.parametrize("allow_na", [False, True])
+def test_every_answer_schema_places_factual_evidence_before_final_value(kind, allow_na):
+    rubric, _ = dynamic_case(kind, 3 if kind == "scale" else True, allow_na=allow_na)
+    result = build_schema(rubric)["properties"]["criteria"]["properties"][NEW_ID]
+    fields = list(result["properties"])
+    assert fields == result["required"]
+    assert fields[0] == "applicability" and fields[-1] == "value"
+    assert fields.index("reasoning") < fields.index("evidence_message_ids") < fields.index("value")
+    assert fields.index("checked_message_ids") < fields.index("value")
+
+
+def test_scale_schema_preserves_replaced_anchor_meanings_and_nonmatching_weight():
+    rubric, _ = dynamic_case("scale", 3)
+    old_schema = build_schema(rubric)
+    data = rubric.model_dump(mode="python")
+    data["criteria"][0].update(weight=37, scale=[
+        {"value": 0, "label": "Synthetic zero", "description": "Synthetic decisive prerequisite absent."},
+        {"value": 2, "label": "Синтетическая середина", "description": "Synthetic first prerequisite present; second absent."},
+        {"value": 8, "label": "Synthetic complete", "description": 'Both synthetic prerequisites, including literal "quotes", present.'},
+    ])
+    replaced = ChecklistVersion.model_validate(data)
+    value = build_schema(replaced)["properties"]["criteria"]["properties"][NEW_ID]["properties"]["value"]["anyOf"][0]
+    assert value["enum"] == [0, 2, 8] and 37 not in value["enum"]
+    anchors = json.dumps([step.model_dump(mode="json") for step in replaced.criteria[0].scale],
+                         ensure_ascii=False, separators=(",", ":"))
+    assert anchors in value["description"]
+    assert "Synthetic decisive prerequisite absent." not in json.dumps(old_schema)
+    assert '"label":"partial"' not in value["description"]
+
+
 @pytest.mark.parametrize("kind,value", [
     ("boolean", True), ("boolean", False), ("boolean", "N/A"),
     ("scale", 0), ("scale", 3), ("scale", 9), ("scale", "N/A"),
@@ -147,7 +178,7 @@ def test_mismatch_repairs_same_connection_with_bounded_safe_feedback_and_exact_r
     if repair_succeeds:
         draft = asyncio.run(service.evaluate_dialogue(conversation(), rubric))
         assert draft.criteria[0].value == "N/A" and draft.raw_response == repaired
-        assert draft.prompt_version == "cqa-single-pass-v1.1.0"
+        assert draft.prompt_version == "cqa-single-pass-v1.1.1"
         assert draft.execution.total_tokens == 280
     else:
         with pytest.raises(AIProviderError) as error:

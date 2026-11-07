@@ -57,7 +57,9 @@ def test_full_transcript_retains_roles_ids_and_raw_timestamps():
 def test_schema_is_derived_from_unknown_ids_scale_and_na():
     schema = build_schema(checklist())["properties"]["criteria"]
     assert schema["required"] == ["new/unknown-Ж", "scale", "flag"]
-    assert schema["properties"]["scale"]["properties"]["value"] == {"type": "number", "enum": [0, 3, 9]}
+    scale_value = schema["properties"]["scale"]["properties"]["value"]
+    assert scale_value["type"] == "number" and scale_value["enum"] == [0, 3, 9]
+    assert all(step.label in scale_value["description"] for step in checklist().criteria[1].scale)
     assert "anyOf" in schema["properties"]["new/unknown-Ж"]["properties"]["value"]
     assert schema["properties"]["flag"]["properties"]["value"] == {"type": "boolean"}
     assert schema["properties"]["flag"]["properties"]["na_condition_met"] == {"type": "null"}

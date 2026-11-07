@@ -154,9 +154,11 @@ All AI tests use clearly labelled synthetic data and mocked HTTP responses. They
 transport, schema, validation, accounting and integration behavior, not scoring accuracy.
 
 Completed checks in this implementation:
-- 173 AI tests passed using a test-only event loop that runs Python's actual task/timer/
-  cancellation scheduler but forbids every I/O registration. This avoids the host's blocked
-  Windows `socketpair()` setup; it is NOT native event-loop or real-network validation.
+- 173 AI tests passed on the normal Windows asyncio event loop with
+  `python -m pytest backend/app/ai/tests -q` on 2026-11-07 after the execution environment
+  recovered. HTTP remains mocked: this verifies native scheduling, not real model output.
+- The same 173 tests previously passed with the test-only no-I/O event-loop runner while
+  the host blocked `socketpair()` setup. That runner is not for production or real I/O.
 - 34 existing backend scoring/importer/contract-export tests passed normally.
 - Linux GitHub CI passed the existing 54 backend tests and installation from
   `requirements.lock` on 8624f57 (run 42369317120). Its testpaths exclude AI tests.
@@ -168,13 +170,21 @@ Reproduce the offline mocked run (do not use this runner for production or real 
 python -m backend.app.ai.tests.run_offline_tests
 ```
 
-AI tests on the native default loop still need Linux CI. Normal Windows async tests could
-not start because even an empty event loop hung inside `socketpair/accept`.
+AI tests still need inclusion in Linux CI; native Windows mocked tests now pass.
 
-No real Gemini API request has been performed during this implementation. The environment
-has no Gemini key and terminal network access is unavailable. Availability of the configured
-model, server acceptance of the exact schema, latency, real token usage/cost and semantic
-accuracy on human labels remain unverified.
+A user-provided key was configured locally on 2026-11-07. One live smoke evaluation with a
+synthetic Russian dialogue, the initial eight-criterion configuration and a replacement
+criterion ID was attempted (AI_MAX_ATTEMPTS=1). It failed with provider_connection_failed
+before an HTTP response. A separate unauthenticated HTTPS diagnostic confirmed Windows
+socket permission error 10013 to generativelanguage.googleapis.com:443. DNS and native
+asyncio initialization passed. This is an execution-environment network restriction, not
+evidence of a rejected API key, nonexistent model or exhausted quota.
+
+The attempt is recorded locally with null response/model metadata, null token counts and
+null cost; no actual model response or measured token usage was obtained. The secret and
+local smoke files are ignored by Git and were not published. A live check needs outbound
+HTTPS access to that host. Key validity, model access, server acceptance of the exact schema,
+latency, actual usage/cost and semantic accuracy on human labels remain unverified.
 
 QA coordination and proposed contract additions:
 https://github.com/woohoqo/cqa-hackathon/issues/2

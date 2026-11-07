@@ -1,0 +1,1144 @@
+{
+  "$defs": {
+    "AnswerType": {
+      "enum": [
+        "boolean",
+        "scale",
+        "flag"
+      ],
+      "title": "AnswerType",
+      "type": "string"
+    },
+    "Appeal": {
+      "additionalProperties": false,
+      "properties": {
+        "criterion_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Criterion Id",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "author": {
+          "minLength": 1,
+          "title": "Author",
+          "type": "string"
+        },
+        "proposed_value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "const": "N/A",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposed Value"
+        },
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "evaluation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Evaluation Id",
+          "type": "string"
+        },
+        "status": {
+          "default": "open",
+          "enum": [
+            "open",
+            "accepted",
+            "rejected"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criterion_id",
+        "reason",
+        "author",
+        "id",
+        "evaluation_id"
+      ],
+      "title": "Appeal",
+      "type": "object"
+    },
+    "AppealCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "criterion_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Criterion Id",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "author": {
+          "minLength": 1,
+          "title": "Author",
+          "type": "string"
+        },
+        "proposed_value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "const": "N/A",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposed Value"
+        }
+      },
+      "required": [
+        "criterion_id",
+        "reason",
+        "author"
+      ],
+      "title": "AppealCreate",
+      "type": "object"
+    },
+    "ChecklistCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "minItems": 1,
+          "title": "Sections",
+          "type": "array"
+        },
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/Criterion"
+          },
+          "minItems": 1,
+          "title": "Criteria",
+          "type": "array"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "sections",
+        "criteria"
+      ],
+      "title": "ChecklistCreate",
+      "type": "object"
+    },
+    "ChecklistVersion": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "minItems": 1,
+          "title": "Sections",
+          "type": "array"
+        },
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/Criterion"
+          },
+          "minItems": 1,
+          "title": "Criteria",
+          "type": "array"
+        },
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "sections",
+        "criteria",
+        "id",
+        "version"
+      ],
+      "title": "ChecklistVersion",
+      "type": "object"
+    },
+    "Conversation": {
+      "additionalProperties": false,
+      "properties": {
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "source": {
+          "default": "manual",
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "messages": {
+          "items": {
+            "$ref": "#/$defs/Message"
+          },
+          "minItems": 1,
+          "title": "Messages",
+          "type": "array"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        },
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "messages",
+        "id"
+      ],
+      "title": "Conversation",
+      "type": "object"
+    },
+    "ConversationInput": {
+      "additionalProperties": false,
+      "properties": {
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "source": {
+          "default": "manual",
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "messages": {
+          "items": {
+            "$ref": "#/$defs/MessageInput"
+          },
+          "minItems": 1,
+          "title": "Messages",
+          "type": "array"
+        },
+        "metadata": {
+          "additionalProperties": true,
+          "title": "Metadata",
+          "type": "object"
+        }
+      },
+      "required": [
+        "messages"
+      ],
+      "title": "ConversationInput",
+      "type": "object"
+    },
+    "Criterion": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "section_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Section Id",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "weight": {
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        },
+        "answer_type": {
+          "$ref": "#/$defs/AnswerType"
+        },
+        "scale": {
+          "items": {
+            "$ref": "#/$defs/ScaleStep"
+          },
+          "title": "Scale",
+          "type": "array"
+        },
+        "allow_na": {
+          "default": false,
+          "title": "Allow Na",
+          "type": "boolean"
+        },
+        "na_condition": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Na Condition"
+        }
+      },
+      "required": [
+        "id",
+        "section_id",
+        "title",
+        "weight",
+        "answer_type"
+      ],
+      "title": "Criterion",
+      "type": "object"
+    },
+    "CriterionResult": {
+      "additionalProperties": false,
+      "properties": {
+        "criterion_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Criterion Id",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "const": "N/A",
+              "type": "string"
+            }
+          ],
+          "title": "Value"
+        },
+        "reasoning": {
+          "minLength": 1,
+          "title": "Reasoning",
+          "type": "string"
+        },
+        "evidence_message_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Message Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        }
+      },
+      "required": [
+        "criterion_id",
+        "value",
+        "reasoning"
+      ],
+      "title": "CriterionResult",
+      "type": "object"
+    },
+    "CriterionScore": {
+      "additionalProperties": false,
+      "properties": {
+        "criterion_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Criterion Id",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "const": "N/A",
+              "type": "string"
+            }
+          ],
+          "title": "Value"
+        },
+        "applicable": {
+          "title": "Applicable",
+          "type": "boolean"
+        },
+        "weight": {
+          "title": "Weight",
+          "type": "number"
+        },
+        "earned_points": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Earned Points"
+        }
+      },
+      "required": [
+        "criterion_id",
+        "value",
+        "applicable",
+        "weight",
+        "earned_points"
+      ],
+      "title": "CriterionScore",
+      "type": "object"
+    },
+    "ErrorDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "retryable": {
+          "default": false,
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    },
+    "Evaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "batch_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Batch Id",
+          "type": "string"
+        },
+        "conversation_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Conversation Id",
+          "type": "string"
+        },
+        "checklist_snapshot": {
+          "$ref": "#/$defs/ChecklistVersion"
+        },
+        "status": {
+          "$ref": "#/$defs/EvaluationStatus"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "ai_draft": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvaluationDraft"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "raw_response": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Response"
+        },
+        "original_score": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoreSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "final_score": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoreSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "final_criteria": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/CriterionResult"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Final Criteria"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorDetail"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "batch_id",
+        "conversation_id",
+        "checklist_snapshot",
+        "status"
+      ],
+      "title": "Evaluation",
+      "type": "object"
+    },
+    "EvaluationBatch": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "evaluations": {
+          "items": {
+            "$ref": "#/$defs/Evaluation"
+          },
+          "title": "Evaluations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "evaluations"
+      ],
+      "title": "EvaluationBatch",
+      "type": "object"
+    },
+    "EvaluationDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/CriterionResult"
+          },
+          "title": "Criteria",
+          "type": "array"
+        },
+        "raw_response": {
+          "description": "Exact original model response, without reserialization",
+          "minLength": 1,
+          "title": "Raw Response",
+          "type": "string"
+        },
+        "provider": {
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "prompt_version": {
+          "minLength": 1,
+          "title": "Prompt Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criteria",
+        "raw_response",
+        "provider",
+        "model",
+        "prompt_version"
+      ],
+      "title": "EvaluationDraft",
+      "type": "object"
+    },
+    "EvaluationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "conversation_ids": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Conversation Ids",
+          "type": "array"
+        },
+        "checklist_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Checklist Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "conversation_ids",
+        "checklist_id"
+      ],
+      "title": "EvaluationRequest",
+      "type": "object"
+    },
+    "EvaluationStatus": {
+      "enum": [
+        "queued",
+        "running",
+        "completed",
+        "failed"
+      ],
+      "title": "EvaluationStatus",
+      "type": "string"
+    },
+    "ImportRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "conversations": {
+          "items": {
+            "$ref": "#/$defs/ConversationInput"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "title": "Conversations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conversations"
+      ],
+      "title": "ImportRequest",
+      "type": "object"
+    },
+    "ImportResult": {
+      "additionalProperties": false,
+      "properties": {
+        "conversations": {
+          "items": {
+            "$ref": "#/$defs/Conversation"
+          },
+          "title": "Conversations",
+          "type": "array"
+        },
+        "imported": {
+          "title": "Imported",
+          "type": "integer"
+        },
+        "existing": {
+          "title": "Existing",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "conversations",
+        "imported",
+        "existing"
+      ],
+      "title": "ImportResult",
+      "type": "object"
+    },
+    "Message": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "role": {
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "timestamp": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timestamp"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "text"
+      ],
+      "title": "Message",
+      "type": "object"
+    },
+    "MessageInput": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "role": {
+          "minLength": 1,
+          "title": "Role",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "timestamp": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timestamp"
+        }
+      },
+      "required": [
+        "role",
+        "text"
+      ],
+      "title": "MessageInput",
+      "type": "object"
+    },
+    "ReviewDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "enum": [
+            "accepted",
+            "rejected"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reviewer": {
+          "minLength": 1,
+          "title": "Reviewer",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "replacement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CriterionResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "appeal_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Appeal Id",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "outcome",
+        "reviewer",
+        "reason",
+        "id",
+        "appeal_id"
+      ],
+      "title": "ReviewDecision",
+      "type": "object"
+    },
+    "ReviewDecisionCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "enum": [
+            "accepted",
+            "rejected"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reviewer": {
+          "minLength": 1,
+          "title": "Reviewer",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "replacement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CriterionResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "outcome",
+        "reviewer",
+        "reason"
+      ],
+      "title": "ReviewDecisionCreate",
+      "type": "object"
+    },
+    "ScaleStep": {
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "minimum": 0,
+          "title": "Value",
+          "type": "number"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "label"
+      ],
+      "title": "ScaleStep",
+      "type": "object"
+    },
+    "ScoreSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/CriterionScore"
+          },
+          "title": "Criteria",
+          "type": "array"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/SectionScore"
+          },
+          "title": "Sections",
+          "type": "array"
+        },
+        "applicable_weight": {
+          "title": "Applicable Weight",
+          "type": "number"
+        },
+        "earned_points": {
+          "title": "Earned Points",
+          "type": "number"
+        },
+        "total": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Total"
+        },
+        "gross_error": {
+          "title": "Gross Error",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "criteria",
+        "sections",
+        "applicable_weight",
+        "earned_points",
+        "total",
+        "gross_error"
+      ],
+      "title": "ScoreSummary",
+      "type": "object"
+    },
+    "Section": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "title": "Section",
+      "type": "object"
+    },
+    "SectionScore": {
+      "additionalProperties": false,
+      "properties": {
+        "section_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Section Id",
+          "type": "string"
+        },
+        "applicable_weight": {
+          "title": "Applicable Weight",
+          "type": "number"
+        },
+        "earned_points": {
+          "title": "Earned Points",
+          "type": "number"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Score"
+        }
+      },
+      "required": [
+        "section_id",
+        "applicable_weight",
+        "earned_points",
+        "score"
+      ],
+      "title": "SectionScore",
+      "type": "object"
+    }
+  },
+  "title": "CQA shared contracts v1"
+}

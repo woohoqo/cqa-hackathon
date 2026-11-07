@@ -1,0 +1,77 @@
+# Shared API contract v1
+
+Source of truth: `backend/app/contracts.py`. `models.schema.json` is generated from all Pydantic models;
+`openapi.json` from implemented FastAPI routes. Regenerate with `python -m scripts.export_contracts`.
+API prefix: `/api/v1`. All bodies/results are JSON unless exporting CSV. Errors use
+`{"error":{"code":"...","message":"...","retryable":false}}`; invalid requests return HTTP 422.
+
+## Agreed endpoints (backend implementation follows foundation)
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| GET | /health | — | status, api_version |
+| POST | /api/v1/conversations | ConversationInput | Conversation (201) |
+| GET | /api/v1/conversations | limit, offset | Conversation[] |
+| GET | /api/v1/conversations/{id} | — | Conversation |
+| POST | /api/v1/imports/json | ImportRequest | ImportResult |
+| POST | /api/v1/imports/dev | no body; URL from environment | ImportResult |
+| POST | /api/v1/checklists | ChecklistCreate | ChecklistVersion (201) |
+| GET | /api/v1/checklists | — | ChecklistVersion[] |
+| GET | /api/v1/checklists/{id} | — | ChecklistVersion |
+| POST | /api/v1/evaluations | EvaluationRequest | EvaluationBatch (202) |
+| GET | /api/v1/evaluations | conversation_id?, limit, offset | Evaluation[] |
+| GET | /api/v1/evaluations/{id} | — | Evaluation |
+| GET | /api/v1/batches/{id} | — | EvaluationBatch |
+| POST | /api/v1/evaluations/{id}/appeals | AppealCreate | Appeal (201) |
+| GET | /api/v1/evaluations/{id}/appeals | — | Appeal[] |
+| POST | /api/v1/appeals/{id}/decisions | ReviewDecisionCreate | ReviewDecision (201) |
+| GET | /api/v1/evaluations/{id}/decisions | — | ReviewDecision[] |
+| GET | /api/v1/exports/evaluations | format=json\|csv, batch_id? | downloadable file |
+
+Poll batch/evaluation until `completed` or `failed`; failed evaluation includes a safe `error`.
+Each evaluation embeds its immutable `checklist_snapshot`. New checklist submissions with the same
+`key` create a new monotonically increasing version; existing versions are never edited.
+
+## AI handoff
+
+```python
+from backend.app.contracts import Conversation, ChecklistVersion, EvaluationDraft
+async def evaluate_dialogue(conversation: Conversation, checklist: ChecklistVersion) -> EvaluationDraft: ...
+```
+
+Output every criterion exactly once, referencing original message IDs. Values: JSON `true`/`false`
+for boolean and flag, a defined numeric scale step for scale, literal `"N/A"` only when allowed.
+`raw_response` is the exact response text, not `json.dumps(parsed_result)`. Include provider, model,
+prompt_version. For malformed provider output, raise `AIProviderError("invalid_ai_response", safe_message,
+raw_response=original_text)`. Never put keys, service URLs or transcript content in an error message.
+The backend validates output and calculates all scores; AI must not calculate or override totals.
+
+## Scoring and appeals
+
+Boolean true earns weight, false earns zero. Scale earns `value / max(scale) * weight`.
+N/A excludes the weight. Total = earned points / applicable weight * 100, rounded only once to
+two decimals. Sections contain unrounded percentages. No applicable positive weight => `total=null`.
+Flag criteria require zero weight; their true values set `gross_error`, never zero the score.
+An accepted review supplies a full replacement CriterionResult; rejected decisions cannot supply one.
+AI draft and raw response stay unchanged. Accepted decisions overlay criteria only in the final result.
+
+## Synthetic request examples
+
+Create transcript:
+```json
+{"source":"manual","external_id":"synthetic-001","messages":[{"id":"m1","role":"client","text":"Тестовый вопрос","timestamp":"2026-11-07T12:00:00+05:00"},{"id":"m2","role":"operator","text":"Тестовый ответ","timestamp":null}]}
+```
+Returned Conversation adds `id` and `created_at`; absent message IDs are assigned stable IDs.
+
+Start evaluation:
+```json
+{"conversation_ids":["<conversation.id>"],"checklist_id":"<checklist.id>"}
+```
+Create appeal:
+```json
+{"criterion_id":"6","reason":"Прошу проверить выбранную ступень","author":"demo-reviewer","proposed_value":7}
+```
+Accept appeal:
+```json
+{"outcome":"accepted","reviewer":"demo-supervisor","reason":"Подтверждено по реплике","replacement":{"criterion_id":"6","value":7,"reasoning":"Подтверждено вручную","evidence_message_ids":["m2"]}}
+```

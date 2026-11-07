@@ -19,6 +19,8 @@ The exact descriptions, sections and conditions are in the configuration, expose
   if the client did not agree or transfer money. Never automatically zero the total.
 - UI evidence links must navigate to messages/call fragments. `metadata.audio_url` supports playback
   or a link to a player. Preserve original timestamps (MM:SS or ISO8601 with timezone).
+- Keep the HTML/CSS/JavaScript UI separable from the service so it can later be adapted into a
+  Dynamics 365 HTML component. React/Vite is the team's chosen implementation.
 - Show original evaluation, reviewer decision/reason and final result. No sign-in is required for demo.
 - An edited/new criterion must run without code changes; create a new checklist version.
 - The paid-model handoff must document model name and approximate full evaluation cost across all calls.

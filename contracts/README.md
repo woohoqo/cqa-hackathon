@@ -56,6 +56,9 @@ See `official-requirements.md` for rules supplied in the two PDFs.
 Boolean true earns weight, false earns zero. Scale earns `value / max(scale) * weight`.
 N/A excludes the weight. Total = earned points / applicable weight * 100, rounded only once to
 two decimals. Sections contain unrounded percentages. No applicable positive weight => `total=null`.
+`weight` and `earned_points` are original, pre-normalization values. For displaying normalized
+criterion weight/contribution, multiply them by `100 / applicable_weight`; never re-round intermediate
+values before calculating the total. Gross-error flag points are null.
 Flag criteria require zero weight; their true values set `gross_error`, never zero the score.
 An accepted review supplies a full replacement CriterionResult; rejected decisions cannot supply one.
 AI draft and raw response stay unchanged. Accepted decisions overlay criteria only in the final result.

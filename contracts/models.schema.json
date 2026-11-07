@@ -20,6 +20,7 @@
         },
         "reason": {
           "minLength": 1,
+          "pattern": "\\S",
           "title": "Reason",
           "type": "string"
         },
@@ -96,6 +97,7 @@
         },
         "reason": {
           "minLength": 1,
+          "pattern": "\\S",
           "title": "Reason",
           "type": "string"
         },
@@ -561,6 +563,19 @@
       "title": "ErrorDetail",
       "type": "object"
     },
+    "ErrorResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ErrorDetail"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "ErrorResponse",
+      "type": "object"
+    },
     "Evaluation": {
       "additionalProperties": false,
       "properties": {
@@ -933,6 +948,7 @@
         },
         "reason": {
           "minLength": 1,
+          "pattern": "\\S",
           "title": "Reason",
           "type": "string"
         },
@@ -993,6 +1009,7 @@
         },
         "reason": {
           "minLength": 1,
+          "pattern": "\\S",
           "title": "Reason",
           "type": "string"
         },

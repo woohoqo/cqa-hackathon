@@ -178,6 +178,10 @@ class ErrorDetail(Contract):
     retryable: bool = False
 
 
+class ErrorResponse(Contract):
+    error: ErrorDetail
+
+
 class Evaluation(Contract):
     id: Identifier
     batch_id: Identifier
@@ -212,7 +216,7 @@ class EvaluationBatch(Contract):
 
 class AppealCreate(Contract):
     criterion_id: Identifier
-    reason: str = Field(min_length=1)
+    reason: str = Field(min_length=1, pattern=r"\S")
     author: str = Field(min_length=1)
     proposed_value: AnswerValue | None = None
 
@@ -227,7 +231,7 @@ class Appeal(AppealCreate):
 class ReviewDecisionCreate(Contract):
     outcome: Literal["accepted", "rejected"]
     reviewer: str = Field(min_length=1)
-    reason: str = Field(min_length=1)
+    reason: str = Field(min_length=1, pattern=r"\S")
     replacement: CriterionResult | None = None
 
     @model_validator(mode="after")

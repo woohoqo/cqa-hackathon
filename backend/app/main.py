@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
 from .contracts import (Appeal, AppealCreate, ChecklistCreate, ChecklistVersion, Conversation,
-                        ConversationInput, DevImportRequest, Evaluation, EvaluationBatch,
+                        ConversationInput, DevImportRequest, ErrorResponse, Evaluation, EvaluationBatch,
                         EvaluationRequest, ImportRequest, ImportResult, ReviewDecision, ReviewDecisionCreate)
 from .default_checklist import official_checklist
 from .errors import AppError
@@ -42,7 +42,8 @@ def create_app(*, database_path: str | None = None, evaluator=None, settings: Se
                 task.cancel()
             await asyncio.gather(*workers, return_exceptions=True)
 
-    app = FastAPI(title="CQA evaluation API", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="CQA evaluation API", version="1.0.0", lifespan=lifespan,
+                  responses={status: {"model": ErrorResponse} for status in (404, 409, 422, 502, 503)})
     app.state.service = service
     app.add_middleware(CORSMiddleware, allow_origins=config.cors_origins,
                        allow_methods=["GET", "POST"], allow_headers=["Content-Type"],

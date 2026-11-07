@@ -7,7 +7,7 @@ Repository is private. Only synthetic examples belong in Git.
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\python -m pip install -e ".[dev]"
+.venv\Scripts\python -m pip install -c requirements.lock -e ".[dev]"
 Copy-Item .env.example .env
 .venv\Scripts\python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
@@ -51,8 +51,31 @@ The organizer reference scores are not supplied, so agreement with them cannot y
 
 ```powershell
 .venv\Scripts\python -m scripts.export_contracts
+.venv\Scripts\python -m scripts.export_examples
 .venv\Scripts\python -m pytest
 ```
 
 Data is local in ignored `data/`. Keep the development server bound to localhost. This prototype
 does not yet provide authentication or production access control.
+
+## Verified backend checkpoint
+
+- 54 automated checks: scoring, strict references, API jobs, checklist versions, original AI preservation,
+  accepted/rejected appeals, interrupted jobs, import adapter and generated contract consistency.
+- Live localhost server: health, official checklist, organizer import of 65 DEV records, repeat import
+  with 65 existing records and stable IDs, explicit missing-provider failure, JSON/CSV exports.
+- No real Gemini call has been performed in this checkpoint. Tests use clearly labeled test-only
+  evaluators; the server itself has no synthetic provider fallback.
+- `contracts/examples.json` contains typed synthetic request/response examples, including 85.38.
+- The current Starlette dependency emits one TestClient deprecation warning; all checks pass.
+
+## Continue integration
+
+Fetch main before integrating; keep feature work in the assigned branch and a separate checkout.
+AI owner: implement the agreed async entry point, preserve raw provider text, reference messages for
+every criterion, include model/prompt versions and document approximate full-call cost. Request any new
+Python dependencies through the integrator; the provider directory can carry its own dependency list.
+UI owner: follow OpenAPI, poll jobs, handle structured errors/null totals, show original/final results,
+checklist versions, appeals and audio links. Keep the UI suitable for later Dynamics 365 HTML embedding.
+QA owner: independently verify rules, evidence navigation and the real AI/UI path after their PRs arrive.
+Only agent 1 merges into main after checks. The full real-AI-to-UI path awaits those branches and a key.

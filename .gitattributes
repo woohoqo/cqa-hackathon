@@ -1,0 +1,2 @@
+# Keep the validated submission bytes stable across Windows and Unix checkouts.
+results/*/results.json text eol=lf

@@ -1,6 +1,7 @@
 # Official documents: implementation notes
 
-Source: CQA Hackathon Student Guide v3 (4 pages), Chat Quality Checklist (3 pages), supplied locally.
+Source: CQA Hackathon Student Guide v3 (4 pages), Chat Quality Checklist (3 pages),
+and CQA Student Guide Appendix Results (3 pages), supplied locally.
 PDFs, signed URLs and real source records remain outside Git.
 
 Initial configuration is `backend/app/default_checklist.py`. Weights 1–7: 10,15,20,20,15,15,5.
@@ -24,7 +25,7 @@ The exact descriptions, sections and conditions are in the configuration, expose
 - Show original evaluation, reviewer decision/reason and final result. No sign-in is required for demo.
 - An edited/new criterion must run without code changes; create a new checklist version.
 - The paid-model handoff must document model name and approximate full evaluation cost across all calls.
-  Neither a confidence threshold nor a particular export format/quality metric is specified in the PDFs.
+  The Results appendix defines official JSON schema_version "1.0"; no quality metric or confidence threshold is specified.
 
 Organizer API: server-side GET using a request-scoped HTTPS `api_url` pasted in the UI,
 or local `DEV_API_URL` as a fallback in localhost mode. Shared demo requires an explicit URL
@@ -37,5 +38,14 @@ The API does not return reference quality scores, so agreement with organizers c
 
 At +23h organizers provide a control set; at +24h code is frozen. Data processing and checklist
 configuration remain allowed after freeze. Before submission a public repository and a link to
-organizers are required. Development repository stays private per the user's instruction; publication
-is a later release step. Presentation is at most five minutes.
+organizers are required. The user authorized public release and official DEV submission on 8 November.
+Presentation is at most five minutes.
+
+The Results appendix requires `results/dev/results.json` (65 records: 60 chats and 5 calls)
+and `results/prod/results.json` (10 control chats), committed and pushed before stop-code.
+Use exact original conversation IDs. `evidence_turns` is one-based over the complete original
+transcript including all roles/events. N/A is null; an unsuccessful processing record retains
+its ID with status=error, criteria=[], score=null and a safe error string.
+The current submission instruction requires original automatic results from ai_draft/original_score,
+without applying human appeal decisions. See `docs/official-export.md` for the exact eight codes,
+model provenance and validation. Do not fabricate a PROD file before the control set is supplied.

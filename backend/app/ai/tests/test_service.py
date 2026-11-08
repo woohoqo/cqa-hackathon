@@ -2,6 +2,7 @@
 import asyncio
 from dataclasses import replace
 import json
+import time
 
 import pytest
 
@@ -187,14 +188,42 @@ def test_safety_block_records_usage_without_fabricating_a_result(monkeypatch, se
     assert records(settings)[0]["usage"]["total_tokens"] == 140
 
 
-def test_total_deadline_is_bounded(monkeypatch, settings):
+@pytest.mark.parametrize("expire_during_preparation", [False, True])
+def test_total_deadline_is_bounded(monkeypatch, settings, expire_during_preparation):
     cfg = replace(settings, evaluation_timeout_seconds=0.02)
     monkeypatch.setattr(service.AISettings, "from_env", lambda: cfg)
-    async def fake(*args): await asyncio.sleep(1)
+    if expire_during_preparation:
+        original = service.build_input
+        def slow_input(*args):
+            text = original(*args)
+            time.sleep(0.03)  # Deterministically exhaust the budget before any provider request.
+            return text
+        monkeypatch.setattr(service, "build_input", slow_input)
+    lifecycle = []
+    async def fake(*args):
+        lifecycle.append("entered")
+        try:
+            await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            lifecycle.append("cancelled")
+            raise
     monkeypatch.setattr(service.provider, "generate_once", fake)
     with pytest.raises(AIProviderError) as error:
         asyncio.run(service.evaluate_dialogue(conversation(), checklist()))
-    assert error.value.code == "ai_timeout" and records(settings)[0]["status"] == "cancelled"
+    assert error.value.code == "ai_timeout"
+    rows = records(settings)
+    if lifecycle:
+        assert lifecycle == ["entered", "cancelled"]
+        assert len(rows) == 1 and rows[0]["status"] == "cancelled"
+        assert len(error.value.execution.attempts) == 1
+        assert error.value.execution.attempts[0].status == "cancelled"
+        assert rows[0]["run_id"] == error.value.execution.run_id
+    else:
+        # Preparation can also consume the tiny deadline on a busy host. There
+        # was no provider call: a fabricated cancellation/usage row would be wrong.
+        assert rows == [] and error.value.execution.attempts == []
+    if expire_during_preparation:
+        assert lifecycle == []
 
 
 def test_external_cancellation_propagates(monkeypatch, settings):

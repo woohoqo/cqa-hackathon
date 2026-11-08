@@ -60,10 +60,16 @@ changed; consult the report before claiming all criteria stayed unchanged. Highe
 can increase token use, latency and cost; reported usage and unknown attempts remain in the
 audit, and unknown cost is not zero. See [Google's thinking documentation](https://ai.google.dev/gemini-api/docs/thinking).
 
-For this demo profile, change only `GEMINI_THINKING_LEVEL=high` in the existing server `.env`
-and restart the backend. Preserve its keys and other settings; never overwrite `.env` from
-an example. The AI profile template now uses high; code-level configuration defaults remain
-unchanged. Empty reserve keys remain unconfigured, and no live reserve test is implied.
+For current full-DEV processing, keep this model/prompt, `GEMINI_THINKING_LEVEL=high`
+and temperature 1.0; set `GEMINI_MAX_OUTPUT_TOKENS=32768` and
+`GEMINI_TIMEOUT_SECONDS=60` in the existing server `.env`, then restart the backend.
+These expanded runtime limits address output exhaustion observed on full DEV. The earlier
+focused N/A comparison above used an 8192-token cap and 30-second provider timeout;
+its recorded settings and failures are not retroactively changed. Larger limits do not
+establish scoring accuracy or guarantee completion. Preserve keys and unrelated settings;
+never overwrite `.env` from an example. Both templates now specify the expanded limits;
+code-level fallbacks remain unchanged. Empty reserve keys remain unconfigured, and no
+live reserve test is implied.
 
 ## Reserve connections (current implementation, 2026-11-08)
 
@@ -173,8 +179,9 @@ python -m pytest backend/app/ai/tests qa/test_ai_acceptance.py backend/tests/tes
 No real reserve availability test was performed for this implementation. Empty reserves
 mean reserve operation is **not configured**, even when all mock tests pass. The integrator
 will separately report any authorized short availability check. Failover does not establish
-evaluation accuracy or fix the published semantic findings AI-QA-002/003; those remain
-subject to human-labelled evaluation. It does not change the model, rubric or prompts.
+evaluation accuracy. The separate prompt/profile follow-up to the published semantic
+findings AI-QA-002/003 is documented above; independent human-labelled evaluation remains
+necessary. Failover does not change the model, rubric or prompts.
 
 Primary documentation checked for this implementation:
 [Google project rate limits](https://ai.google.dev/gemini-api/docs/rate-limits),
@@ -208,14 +215,14 @@ the provider uses the project's existing `httpx`, `pydantic` and `python-dotenv`
 | `GEMINI_API_KEY` | Required; sent only in `x-goog-api-key` to Google's fixed HTTPS API |
 | `GEMINI_MODEL` | Required supported model ID; team choice: `gemini-3.5-flash-lite` |
 | `AI_PROVIDER` | `gemini`; other values fail explicitly |
-| `GEMINI_TIMEOUT_SECONDS` | `30`, timeout per HTTP operation |
+| `GEMINI_TIMEOUT_SECONDS` | Current templates: `60`, timeout per HTTP operation; code fallback if unset: `30` |
 | `AI_EVALUATION_TIMEOUT_SECONDS` | `100`, total evaluation deadline including retries |
 | `AI_MAX_ATTEMPTS` | `3`, total actual requests across all connections and format repairs; configurable 1–5 |
 | `AI_RETRY_BASE_SECONDS` | `1`, exponential backoff with jitter |
 | `AI_RETRY_MAX_SECONDS` | `10`; longer Retry-After suspends that connection/group and permits only an eligible reserve |
 | `AI_MIN_REQUEST_INTERVAL_SECONDS` | `0`; free-tier profile uses `15` between request starts, including retries |
 | `AI_RATE_LIMIT_COOLDOWN_SECONDS` | `60`; minimum shared cooldown on HTTP 429, extended by Google's delay |
-| `GEMINI_MAX_OUTPUT_TOKENS` | `8192`; may need adjustment for long checklists/thinking |
+| `GEMINI_MAX_OUTPUT_TOKENS` | Current templates: `32768`, after output-limit failures on full DEV; code fallback if unset: `8192` |
 | `GEMINI_TEMPERATURE` | `1.0`, Google's recommended default for Gemini 3 |
 | `GEMINI_THINKING_LEVEL` | Unset in code; current checked demo profile uses `high`; see the focused live report above |
 | `GEMINI_THINKING_BUDGET` | Unset; alternative for budget-based models, not with thinking level |
@@ -239,7 +246,8 @@ in that checkout's `.env` once. This command never replaces an existing `.env`.
 Do not copy a sample over an existing secret file. If applying a different profile,
 edit only the relevant non-secret settings and keep the existing key and DEV URL.
 The current AI profile selects `gemini-3.5-flash-lite`, high thinking, backend concurrency 1,
-at most two attempts and 15 seconds between request starts. The earlier minimal-thinking
+at most two attempts and 15 seconds between request starts, with a 32768-token output cap
+and a 60-second provider timeout. The earlier minimal-thinking
 profile is historical. Existing settings
 are preserved; inspect the current root example/profile for a fresh installation. Two
 attempts cannot reach a third key after two failures. This is conservative application pacing,

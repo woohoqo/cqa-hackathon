@@ -18,5 +18,8 @@ Official Student Guide and Chat Quality Checklist take priority. Their initial c
 in `backend/app/default_checklist.py`; implementation notes are in `contracts/official-requirements.md`.
 
 Never commit secrets, signed service URLs, `.env`, real transcripts, local databases, or source PDFs.
+Official `results/dev/results.json` and `results/prod/results.json` are authorized submission artifacts
+after validation. Export original automatic criteria/scores; human appeal decisions stay separate.
+Source transcripts and private audit/provenance archives remain outside Git.
 Synthetic fixtures must be clearly labeled. No force push or deletion of teammates' branches.
 Before dependent changes/integration: fetch and inspect branches and PRs. Commit, push, verify remote SHA.

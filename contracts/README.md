@@ -81,6 +81,8 @@ values before calculating the total. Gross-error flag points are null.
 Flag criteria require zero weight; their true values set `gross_error`, never zero the score.
 An accepted review supplies a full replacement CriterionResult; rejected decisions cannot supply one.
 AI draft and raw response stay unchanged. Accepted decisions overlay criteria only in the final result.
+Official JSON 1.0 submission uses the original automatic criteria and original score, including after
+an appeal. The internal JSON/CSV archive and UI retain reviewed final values separately.
 
 ## Synthetic request examples
 

@@ -1,4 +1,4 @@
-"""Opt-in password-protected demo using an isolated database and the real evaluator."""
+"""Opt-in shared demo using an isolated database and the real evaluator."""
 import base64
 import binascii
 import hashlib
@@ -52,11 +52,12 @@ def organizer_import_guard(configured_url: str):
 
 
 class DemoAccess:
-    def __init__(self, app, *, password: str):
-        if len(password) < 20:
+    def __init__(self, app, *, password: str, public_access: bool = False):
+        if not public_access and len(password) < 20:
             raise RuntimeError("A demo password of at least 20 characters is required")
         self.app = app
         self.password = password.encode("utf-8")
+        self.public_access = public_access
 
     def session_token(self):
         payload = f"{int(time.time()) + SESSION_SECONDS}.{secrets.token_urlsafe(24)}"
@@ -151,7 +152,10 @@ class DemoAccess:
                 status_code=403, headers=NO_STORE)(scope, receive, send)
             return
         if scope["path"] == "/demo-login":
-            await self.login(scope, receive, send)
+            if self.public_access:
+                await RedirectResponse("/", status_code=303, headers=NO_STORE)(scope, receive, send)
+            else:
+                await self.login(scope, receive, send)
             return
         valid = False
         try:
@@ -165,7 +169,7 @@ class DemoAccess:
                     valid = user_ok and password_ok
         except (ValueError, binascii.Error):
             pass
-        valid = valid or self.valid_session(headers)
+        valid = self.public_access or valid or self.valid_session(headers)
         if (not valid and scope["method"] == "GET" and not scope["path"].startswith("/api/")
                 and "text/html" in headers.get("accept", "")):
             await RedirectResponse("/demo-login", status_code=303, headers=NO_STORE)(scope, receive, send)
@@ -188,8 +192,10 @@ class DemoAccess:
 
 
 def create_demo_app():
+    # Explicit process setting, read before .env. The launcher sets it from --public.
+    public_access = os.environ.get("CQA_DEMO_PUBLIC") == "1"
     password = os.environ.get("CQA_DEMO_PASSWORD", "")
-    if len(password) < 20:
+    if not public_access and len(password) < 20:
         raise RuntimeError("Start the protected demo with python -m scripts.run_demo")
     load_dotenv(ROOT / ".env", override=False)
     # Owner-approved exact HTTPS endpoint. The signed URL itself is never a fallback in demo.
@@ -220,5 +226,5 @@ def create_demo_app():
             yield
 
     app.router.lifespan_context = lifespan
-    app.add_middleware(DemoAccess, password=password)
+    app.add_middleware(DemoAccess, password=password, public_access=public_access)
     return app

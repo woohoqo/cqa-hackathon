@@ -5,7 +5,7 @@ import json
 import pytest
 
 from backend.app.default_checklist import official_checklist
-from qa.audit_submission import audit_submission
+from qa.audit_submission import _public_text, audit_submission
 
 
 def synthetic_inputs():
@@ -193,3 +193,68 @@ def test_batch_archive_shape_and_utf8_file_are_supported():
     archive["batch"] = {"evaluations": archive.pop("evaluations")}
     report = audit(tuple(json.dumps(item, ensure_ascii=False).encode("utf-8") for item in (payload, source, archive)))
     assert report["valid"]
+
+
+def name_projection_inputs():
+    data = synthetic_inputs()
+    payload, source, archive = data
+    text = "SYNTHETIC My name is Example Tester."
+    source["data"]["records"][0]["transcript"][3]["text"] = text
+    archive["conversations"][0]["messages"][3]["text"] = text
+    archive["evaluations"][0]["ai_draft"]["criteria"][0]["reasoning"] = "SYNTHETIC The agent introduced EXAMPLE-Tester, then helped."
+    payload["results"][0]["criteria"][0]["rationale"] = "SYNTHETIC The agent introduced [имя скрыто], then helped."
+    return data
+
+
+def test_only_exact_source_name_projection_is_allowed_without_mutating_original():
+    inputs = name_projection_inputs()
+    before = deepcopy(inputs)
+    report = audit(inputs)
+    assert report["valid"] and report["privacy"]["fields_transformed"] == 1
+    assert inputs == before
+
+
+@pytest.mark.parametrize("rationale", [
+    "SYNTHETIC The agent introduced EXAMPLE-Tester, then helped.",  # Must remove confirmed personal name.
+    "SYNTHETIC The agent introduced [имя скрыто], then did not help.",  # Semantic edit.
+    "SYNTHETIC The agent [имя скрыто], then helped.",  # Over-broad removal.
+    "SYNTHETIC The agent introduced [ДРУГОЙ МАРКЕР], then helped.",
+])
+def test_unmasked_or_arbitrarily_changed_rationale_fails(rationale):
+    inputs = name_projection_inputs()
+    inputs[0]["results"][0]["criteria"][0]["rationale"] = rationale
+    assert "not_original_ai_result" in codes(audit(inputs))
+
+
+def test_name_not_confirmed_by_same_source_cannot_be_redacted():
+    inputs = name_projection_inputs()
+    inputs[1]["data"]["records"][0]["transcript"][3]["text"] = "SYNTHETIC Generic support text."
+    inputs[2]["conversations"][0]["messages"][3]["text"] = "SYNTHETIC Generic support text."
+    assert "not_original_ai_result" in codes(audit(inputs))
+
+
+def test_projection_preserves_whole_words_punctuation_and_longest_name():
+    messages = [{"text": "SYNTHETIC My name is Example."}, {"text": "SYNTHETIC My name is Example Tester."}]
+    original = "  EXAMPLE / Tester, Example! Examples unchanged.\n"
+    assert _public_text(original, messages) == "  [имя скрыто], [имя скрыто]! Examples unchanged.\n"
+    assert _public_text(original, []) == original
+
+
+def test_projection_uses_deterministic_overlap_tie_and_excludes_generic_introduction():
+    messages = [{"text": "SYNTHETIC My name is Aaa Bbb."}, {"text": "SYNTHETIC My name is Bbb Ccc."}]
+    assert _public_text("Aaa Bbb Ccc", messages) == "[имя скрыто] Ccc"
+    assert _public_text("Aaa Bbb Ccc", list(reversed(messages))) == "[имя скрыто] Ccc"
+    assert _public_text("Unable to proceed", [{"text": "SYNTHETIC I am Unable to proceed."}]) == "Unable to proceed"
+
+
+def test_failed_error_requires_the_same_narrow_projection():
+    payload, source, archive = name_projection_inputs()
+    evaluation = archive["evaluations"][0]
+    evaluation.update(status="failed", ai_draft=None,
+                      error={"code": "provider_unavailable", "message": "SYNTHETIC Failed for Example Tester."},
+                      ai_execution={"attempts": [{"model": "synthetic-model", "provider": "gemini", "network_attempted": True}]})
+    payload["results"][0] = {"conversation_id": "synthetic-source", "status": "error", "criteria": [], "score": None,
+                             "error": "SYNTHETIC Failed for [имя скрыто]."}
+    assert audit((payload, source, archive))["valid"]
+    payload["results"][0]["error"] = "SYNTHETIC Different failure for [имя скрыто]."
+    assert "error_result_mismatch" in codes(audit((payload, source, archive)))

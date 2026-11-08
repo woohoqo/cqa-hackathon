@@ -12,12 +12,53 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 
 IDS = ("contact", "discovery", "identification", "consultation", "empathy", "dialogue", "closure", "critical")
 MAPPING = dict(zip((str(i) for i in range(1, 9)), IDS))
 WEIGHTS = dict(zip(IDS, (10, 15, 20, 20, 15, 15, 5, 0)))
 NULLABLE = {"discovery", "identification", "consultation", "closure"}
 STEPS = {"consultation": (0, 5, 10, 15, 20), "dialogue": (0, 4, 7, 10)}
+PRIVACY_MARKER = "[имя скрыто]"
+
+
+def _public_text(original, source_messages):
+    """Independent implementation of the approved, source-confirmed name projection.
+
+    Discover only explicit introductions from this source dialogue; prefer longer
+    token sequences, then character count and lexical order. The backend helper is
+    deliberately not imported. Every character outside selected spans is preserved.
+    """
+    from qa.review_source_privacy import NAME, NOT_NAMES
+    if type(original) is not str:
+        return original
+    word = re.compile(r"[^\W_]+", re.UNICODE)
+    names = set()
+    excluded = {item.casefold() for item in NOT_NAMES}
+    for message in source_messages:
+        for match in NAME.finditer(message["text"]):
+            name = match.group("value").strip()
+            if name.split()[0].casefold() not in excluded:
+                names.add(tuple(token.group().casefold() for token in word.finditer(name)))
+    names = sorted(names, key=lambda tokens: (-len(tokens), -len(" ".join(tokens)), tokens))
+    words = list(word.finditer(original))
+    tokens = [token.group().casefold() for token in words]
+    candidates = []
+    for rank, name in enumerate(names):
+        for start in range(len(tokens) - len(name) + 1):
+            if tuple(tokens[start:start + len(name)]) == name:
+                candidates.append((rank, start, start + len(name)))
+    occupied, spans = set(), []
+    for _, start, end in sorted(candidates):
+        indices = set(range(start, end))
+        if not indices & occupied:
+            occupied.update(indices)
+            spans.append((words[start].start(), words[end - 1].end()))
+    parts, cursor = [], 0
+    for start, end in sorted(spans):
+        parts.extend((original[cursor:start], PRIVACY_MARKER))
+        cursor = end
+    return "".join(parts) + original[cursor:]
 
 
 def strict_json(value):
@@ -79,6 +120,7 @@ def audit_submission(payload, source, archive, *, dataset_kind="dev", team_name=
     """
     report = {"valid": False, "dataset_kind": dataset_kind, "errors": [], "warnings": [],
               "counts": {"source": 0, "results": 0, "ok": 0, "error": 0},
+              "privacy": {"marker": PRIVACY_MARKER, "fields_transformed": 0},
               "checks": {"original_ai_only": False, "full_transcript_positions": False,
                          "exact_source_ids": False, "independent_score_arithmetic": False}}
 
@@ -223,6 +265,7 @@ def audit_submission(payload, source, archive, *, dataset_kind="dev", team_name=
         require(cid not in found, "duplicate_result_id", path, cid)
         found.add(cid)
         evaluation = selected[cid]
+        source_messages = source_by_id[cid]["transcript"]
         draft = evaluation.get("ai_draft")
         execution = evaluation.get("ai_execution") or (draft.get("execution") if type(draft) is dict else None)
         if type(draft) is dict:
@@ -250,9 +293,12 @@ def audit_submission(payload, source, archive, *, dataset_kind="dev", team_name=
             error = evaluation.get("error")
             if not require(type(error) is dict, "invalid_stored_error", path, cid):
                 error = {}
+            original_error = error.get("message")
+            public_error = _public_text(original_error, source_messages)
+            report["privacy"]["fields_transformed"] += public_error != original_error
             require(set(row) == {"conversation_id", "status", "criteria", "score", "error"}
                     and row.get("status") == "error" and row.get("criteria") == [] and row.get("score") is None
-                    and _text(row.get("error")) and row.get("error") == error.get("message"),
+                    and _text(row.get("error")) and row.get("error") == public_error,
                     "error_result_mismatch", path, cid)
             issue("retained_processing_error", path, cid, warning=True)
             if draft is None and execution is None and error.get("code") not in {"provider_not_configured", "invalid_ai_configuration"}:
@@ -299,7 +345,10 @@ def audit_submission(payload, source, archive, *, dataset_kind="dev", team_name=
                 # Reject numeric booleans even though Python True == 1.
                 require(_value(expected_value, code) and (type(expected_value) is not bool or type(value) is bool),
                         "invalid_original_value", path, cid)
-                require(value == expected_value and criterion.get("rationale") == result.get("reasoning"), "not_original_ai_result", path, cid)
+                original_reasoning = result.get("reasoning")
+                public_reasoning = _public_text(original_reasoning, source_messages)
+                report["privacy"]["fields_transformed"] += public_reasoning != original_reasoning
+                require(value == expected_value and criterion.get("rationale") == public_reasoning, "not_original_ai_result", path, cid)
                 refs = result.get("evidence_message_ids")
                 if require(type(refs) is list and bool(refs) and all(type(ref) is str and ref in turns for ref in refs),
                            "invalid_original_evidence", path, cid):
@@ -345,7 +394,8 @@ def main():
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     print(json.dumps({"valid": report["valid"], "counts": report["counts"], "error_count": len(report["errors"]),
-                      "warning_count": len(report["warnings"]), "results_sha256": report["file_sha256"]["results"]}))
+                      "warning_count": len(report["warnings"]), "privacy_fields_transformed": report["privacy"]["fields_transformed"],
+                      "results_sha256": report["file_sha256"]["results"]}))
     raise SystemExit(0 if report["valid"] else 1)
 
 

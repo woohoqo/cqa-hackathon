@@ -6,8 +6,8 @@ import json
 import pytest
 
 from backend.app.contracts import (
-    AIConnectionAttempt, AIExecutionMetadata, ChecklistVersion, Conversation,
-    CriterionResult, ErrorDetail, Evaluation, EvaluationDraft, Message,
+    AIConnectionAttempt, AIExecutionMetadata, AppealCreate, ChecklistVersion, Conversation,
+    CriterionResult, ErrorDetail, Evaluation, EvaluationDraft, Message, ReviewDecisionCreate,
 )
 from backend.app.default_checklist import official_checklist
 from backend.app.official_export import (
@@ -15,6 +15,9 @@ from backend.app.official_export import (
     official_results_schema, validate_official_export,
 )
 from backend.app.scoring import calculate_score
+from backend.app.service import CQAService
+from backend.app.settings import Settings
+from backend.app.storage import Database
 
 
 def synthetic_case(number=1):
@@ -111,24 +114,75 @@ def test_required_8538_exact_mapping_full_transcript_and_no_mutation(case):
     assert report["counts"] == {"expected": 1, "actual": 1, "ok": 1, "error": 0}
 
 
-def test_reviewed_final_values_and_evidence_exported_original_untouched(case):
+def test_human_changes_never_replace_original_automatic_submission(case):
     evaluation = case[1]
-    original = deepcopy((evaluation.ai_draft, evaluation.raw_response, evaluation.original_score))
+    expected = build(case)
     evaluation.final_criteria[0].value = False
     evaluation.final_criteria[0].reasoning = "Synthetic human review"
     evaluation.final_criteria[0].evidence_message_ids = [case[0].messages[1].id]
+    evaluation.final_criteria[1].value = True  # A review changes N/A and its denominator.
+    evaluation.final_criteria[-1].value = True  # A review changes the separate critical flag.
     evaluation.final_score = calculate_score(evaluation.checklist_snapshot, evaluation.final_criteria)
-    row = build(case)["results"][0]
-    assert row["score"]["final_score"] == 70
-    assert row["criteria"][0] == {"criterion_id": "contact", "value": False,
-                                  "rationale": "Synthetic human review", "evidence_turns": [2]}
-    assert (evaluation.ai_draft, evaluation.raw_response, evaluation.original_score) == original
+    stored = deepcopy(case)
+    assert evaluation.final_score.total != evaluation.original_score.total
+    payload = build(case)
+    assert payload == expected and case == stored
+    assert validate(payload, case, evaluations=[evaluation])["valid"]
+    assert payload["results"][0]["criteria"][1]["value"] is None
+    assert payload["results"][0]["score"] == {"final_score": 85.38, "critical_flag": False}
+
+
+@pytest.mark.parametrize("outcome", ["accepted", "rejected"])
+@pytest.mark.parametrize("criterion_id,value", [("1", False), ("8", True)])
+def test_persisted_appeal_decision_keeps_official_original_and_internal_review(
+    tmp_path, case, outcome, criterion_id, value,
+):
+    conversation, evaluation = case
+    path = str(tmp_path / "synthetic-appeal.sqlite3")
+    db = Database(path)
+    db.initialize()
+    with db.connect(write=True) as con:
+        con.execute("INSERT INTO conversations VALUES (?,?,?,?)",
+                    (conversation.id, conversation.source, conversation.external_id, conversation.model_dump_json()))
+        con.execute("INSERT INTO evaluations VALUES (?,?,?,?,?)",
+                    (evaluation.id, evaluation.batch_id, conversation.id, evaluation.status.value, evaluation.model_dump_json()))
+    service = CQAService(db, Settings(path, [], 1, 1, ""))
+    expected = build(case)
+    appeal = service.appeal(evaluation.id, AppealCreate(
+        criterion_id=criterion_id, reason="Synthetic submission provenance check",
+        author="synthetic-author", proposed_value=value,
+    ))
+    replacement = CriterionResult(criterion_id=criterion_id, value=value,
+                                  reasoning="Synthetic human decision", evidence_message_ids=[conversation.messages[1].id])
+    service.decide(appeal.id, ReviewDecisionCreate(
+        outcome=outcome, reviewer="synthetic-reviewer", reason="Synthetic appeal decision",
+        replacement=replacement if outcome == "accepted" else None,
+    ))
+    persisted = db.read("evaluations", evaluation.id)
+    before_export = persisted.model_dump_json()
+    assert build((conversation, persisted)) == expected
+    assert validate(expected, case, evaluations=[persisted])["valid"]
+    assert db.read("evaluations", evaluation.id).model_dump_json() == before_export
+    assert persisted.ai_draft == evaluation.ai_draft
+    assert persisted.raw_response == evaluation.raw_response
+    assert persisted.original_score == evaluation.original_score
+    assert persisted.checklist_snapshot == evaluation.checklist_snapshot
+    reviewed = next(item for item in persisted.final_criteria if item.criterion_id == criterion_id)
+    if outcome == "accepted":
+        assert reviewed == replacement
+        assert persisted.final_score.total == (70 if criterion_id == "1" else 85.38)
+        assert persisted.final_score.gross_error is (criterion_id == "8")
+    else:
+        assert persisted.final_criteria == evaluation.final_criteria
+        assert persisted.final_score == evaluation.final_score
+    assert db.read("appeals", appeal.id).status == outcome
+    assert service.decisions(evaluation.id)[0].outcome == outcome
 
 
 def test_critical_flag_does_not_zero_total(case):
     evaluation = case[1]
-    evaluation.final_criteria[-1].value = True
-    evaluation.final_score = calculate_score(evaluation.checklist_snapshot, evaluation.final_criteria)
+    evaluation.ai_draft.criteria[-1].value = True
+    evaluation.original_score = calculate_score(evaluation.checklist_snapshot, evaluation.ai_draft.criteria)
     assert build(case)["results"][0]["score"] == {"final_score": 85.38, "critical_flag": True}
 
 
@@ -164,25 +218,43 @@ def test_missing_duplicate_and_unrelated_evaluations_rejected(case):
         assert code in errors(exc.value.report)
 
 
-@pytest.mark.parametrize("field", ["ai_draft", "final_criteria", "final_score"])
+@pytest.mark.parametrize("field", ["ai_draft", "original_score"])
 def test_completed_but_missing_data_blocks(case, field):
     setattr(case[1], field, None)
     assert_blocked(case, "incomplete_completed_evaluation")
 
 
 @pytest.mark.parametrize("mutator,code", [
-    (lambda e: setattr(e.final_score, "total", 0), "stored_score_mismatch"),
-    (lambda e: setattr(e.final_score, "gross_error", True), "stored_score_mismatch"),
-    (lambda e: setattr(e.final_score, "total", None), "uncomputed_score"),
-    (lambda e: e.final_criteria.pop(), "invalid_stored_results"),
-    (lambda e: e.final_criteria.append(deepcopy(e.final_criteria[0])), "invalid_stored_results"),
-    (lambda e: setattr(e.final_criteria[0], "value", "N/A"), "invalid_stored_results"),
-    (lambda e: setattr(e.final_criteria[5], "value", 6.0), "invalid_stored_results"),
-    (lambda e: setattr(e.final_criteria[0], "evidence_message_ids", ["unknown"]), "invalid_stored_results"),
+    (lambda e: setattr(e.original_score, "total", 0), "stored_score_mismatch"),
+    (lambda e: setattr(e.original_score, "gross_error", True), "stored_score_mismatch"),
+    (lambda e: setattr(e.original_score, "total", None), "uncomputed_score"),
+    (lambda e: e.ai_draft.criteria.pop(), "invalid_stored_results"),
+    (lambda e: e.ai_draft.criteria.append(deepcopy(e.ai_draft.criteria[0])), "invalid_stored_results"),
+    (lambda e: setattr(e.ai_draft.criteria[0], "value", "N/A"), "invalid_stored_results"),
+    (lambda e: setattr(e.ai_draft.criteria[5], "value", 6.0), "invalid_stored_results"),
+    (lambda e: setattr(e.ai_draft.criteria[0], "evidence_message_ids", ["unknown"]), "invalid_stored_results"),
 ])
-def test_corrupt_saved_results_not_exported(case, mutator, code):
+def test_corrupt_original_not_replaced_by_valid_final_review(case, mutator, code):
     mutator(case[1])
     assert_blocked(case, code)
+
+
+@pytest.mark.parametrize("field", ["final_criteria", "final_score"])
+def test_missing_human_final_fields_do_not_replace_or_block_valid_original(case, field):
+    expected = build(case)
+    setattr(case[1], field, None)
+    assert build(case) == expected
+
+
+def test_human_final_payload_fails_original_provenance_even_when_arithmetic_is_valid(case):
+    payload = build(case)
+    evaluation = case[1]
+    evaluation.final_criteria[0].value = False
+    evaluation.final_score = calculate_score(evaluation.checklist_snapshot, evaluation.final_criteria)
+    payload["results"][0]["criteria"][0]["value"] = False
+    payload["results"][0]["score"]["final_score"] = evaluation.final_score.total
+    assert validate(payload, case)["valid"]  # Wire format and arithmetic alone are insufficient.
+    assert "stored_result_mismatch" in errors(validate(payload, case, evaluations=[evaluation]))
 
 
 @pytest.mark.parametrize("mutator", [

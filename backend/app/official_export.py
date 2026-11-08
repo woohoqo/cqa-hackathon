@@ -2,6 +2,7 @@
 
 Inputs are an explicitly selected, complete dataset and one selected evaluation per
 conversation. This module performs no I/O, reads no configuration, and never calls AI.
+Successful rows use the immutable automatic draft and original score, never review decisions.
 """
 from __future__ import annotations
 
@@ -252,24 +253,29 @@ def _row(conversation, evaluation, report):
     if evaluation.status != "completed":
         _issue(report, "invalid_evaluation_status", path, "Неизвестный статус сохранённой оценки.", cid)
         return None
-    if evaluation.ai_draft is None or evaluation.final_criteria is None or evaluation.final_score is None:
-        _issue(report, "incomplete_completed_evaluation", path, "Завершённая оценка не содержит исходного AI-результата или окончательных критериев и баллов.", cid)
+    if evaluation.ai_draft is None or evaluation.original_score is None:
+        _issue(report, "incomplete_completed_evaluation", path, "Завершённая оценка не содержит исходного AI-результата или исходных автоматических баллов.", cid)
         return None
+    # The appendix calls the numeric field final_score, but submission provenance
+    # is the selected automatic attempt. Human corrections remain in the internal
+    # archive/UI and must never silently replace model outputs for organizer scoring.
+    criteria_source = evaluation.ai_draft.criteria
+    score_source = evaluation.original_score
     try:
-        validate_results(conversation, evaluation.checklist_snapshot, evaluation.final_criteria)
-        recomputed = calculate_score(evaluation.checklist_snapshot, evaluation.final_criteria)
+        validate_results(conversation, evaluation.checklist_snapshot, criteria_source)
+        recomputed = calculate_score(evaluation.checklist_snapshot, criteria_source)
     except (ValueError, TypeError, ArithmeticError):
-        _issue(report, "invalid_stored_results", path, "Окончательные критерии, значения или ссылки не проходят проверку.", cid)
+        _issue(report, "invalid_stored_results", path, "Исходные автоматические критерии, значения или ссылки не проходят проверку.", cid)
         return None
-    if recomputed.total is None or evaluation.final_score.total is None:
+    if recomputed.total is None or score_source.total is None:
         _issue(report, "uncomputed_score", path, "Итог не рассчитан; его нельзя подменить нулём или успешным результатом.", cid)
         return None
-    if (evaluation.final_score.total != recomputed.total
-            or evaluation.final_score.gross_error is not recomputed.gross_error):
-        _issue(report, "stored_score_mismatch", path, "Сохранённый окончательный итог или грубая ошибка расходится с пересчётом критериев.", cid)
+    if (score_source.total != recomputed.total
+            or score_source.gross_error is not recomputed.gross_error):
+        _issue(report, "stored_score_mismatch", path, "Сохранённый исходный автоматический итог или грубая ошибка расходится с пересчётом AI-критериев.", cid)
         return None
     turns = {message.id: index for index, message in enumerate(conversation.messages, 1)}
-    indexed = {result.criterion_id: result for result in evaluation.final_criteria}
+    indexed = {result.criterion_id: result for result in criteria_source}
     criteria = []
     for internal, official in CRITERION_MAP.items():
         result = indexed[internal]
@@ -278,7 +284,7 @@ def _row(conversation, evaluation, report):
         criteria.append({"criterion_id": official, "value": value, "rationale": result.reasoning,
                          "evidence_turns": [turns[mid] for mid in result.evidence_message_ids]})
     return {"conversation_id": cid, "status": "ok", "criteria": criteria,
-            "score": {"final_score": recomputed.total, "critical_flag": recomputed.gross_error}}
+            "score": {"final_score": score_source.total, "critical_flag": score_source.gross_error}}
 
 
 def _assemble(conversations, evaluations, team_name, dataset_kind, expected_models, report):
@@ -306,6 +312,7 @@ def build_official_export(
 
     ``conversations`` is the full authoritative source set. ``evaluations`` must
     contain exactly one explicitly selected evaluation for each source dialogue.
+    Successful rows preserve ai_draft.criteria and original_score before human review.
     Failed evaluations are valid official error records, with warnings in validation.
     """
     report = _report(dataset_kind)
@@ -412,7 +419,7 @@ def validate_official_export(
 
     A JSON string/UTF-8 bytes additionally detects duplicate object keys. A parsed
     object cannot retain duplicate-key information. Optional evaluations establish
-    exact provenance against the selected final results, including human decisions.
+    exact provenance against the selected original automatic results, excluding human decisions.
     """
     report = _report(dataset_kind)
     external, _ = _sources(conversations, dataset_kind, report)
@@ -484,7 +491,7 @@ def validate_official_export(
             actual_rows = {row.get("conversation_id"): row for row in results if type(row) is dict and _text(row.get("conversation_id"))}
             for row in expected["results"]:
                 if actual_rows.get(row["conversation_id"]) != row:
-                    _issue(report, "stored_result_mismatch", "results", "Экспорт отличается от выбранной окончательной оценки, объяснений или ссылок.", row["conversation_id"])
+                    _issue(report, "stored_result_mismatch", "results", "Экспорт отличается от выбранной исходной автоматической оценки, объяснений или ссылок.", row["conversation_id"])
     return _finish(report)
 
 

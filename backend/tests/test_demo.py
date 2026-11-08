@@ -13,9 +13,11 @@ PASSWORD = "synthetic-demo-password-for-tests"
 
 
 @pytest.fixture
-def client(tmp_path, monkeypatch):
+def client(tmp_path, monkeypatch, request):
     monkeypatch.setattr(demo, "ROOT", tmp_path)
-    monkeypatch.setenv("CQA_DEMO_PASSWORD", PASSWORD)
+    public = getattr(request, "param", False)
+    monkeypatch.setenv("CQA_DEMO_PUBLIC", "1" if public else "0")
+    monkeypatch.setenv("CQA_DEMO_PASSWORD", "" if public else PASSWORD)
     monkeypatch.delenv("CQA_DEMO_ORGANIZER_ENDPOINT", raising=False)
     for key, value in {"DATABASE_PATH": str(tmp_path / "original.sqlite3"),
                        "DEV_API_URL": "https://example.invalid/must-not-fetch",
@@ -144,6 +146,7 @@ def test_unconfigured_demo_destination_stays_closed():
 
 
 def test_demo_without_password_refuses_to_start(monkeypatch):
+    monkeypatch.delenv("CQA_DEMO_PUBLIC", raising=False)
     monkeypatch.setenv("CQA_DEMO_PASSWORD", "")
     with pytest.raises(RuntimeError, match="Start the protected demo"):
         demo.create_demo_app()
@@ -186,3 +189,33 @@ def test_login_rejects_cross_origin_and_oversized_form(client):
 @pytest.mark.parametrize("cookie", ["forged", "123.nonce.bad", "1.nonce." + "a" * 64, "x" * 300])
 def test_invalid_session_never_grants_access(client, cookie):
     assert client.get("/api/v1/conversations", headers={"cookie": f"{demo.COOKIE_NAME}={cookie}"}).status_code == 401
+
+
+@pytest.mark.parametrize("client", [True], indirect=True)
+def test_public_demo_without_password_serves_ui_api_and_old_login_link(client):
+    for path in ("/", "/asset.js", "/health", "/docs", "/openapi.json", "/api/v1/conversations"):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-store"
+        assert response.headers["x-robots-tag"] == "noindex, nofollow"
+        assert "set-cookie" not in response.headers
+    redirect = client.get("/demo-login", follow_redirects=False)
+    assert redirect.status_code == 303 and redirect.headers["location"] == "/"
+    assert "Synthetic demo UI" in client.get("/demo-login").text
+    # Old or malformed browser credentials cannot lock a visitor out of public mode.
+    assert client.get("/health", headers={"authorization": "Basic !!!"}).status_code == 200
+    assert client.get("/.env").status_code == 404
+    assert client.get("/private/demo-access.json").status_code == 404
+
+
+@pytest.mark.parametrize("client", [True], indirect=True)
+def test_public_demo_preserves_import_guards_and_same_origin_mutations(client):
+    payload = {"messages": [{"role": "client", "text": "Synthetic public demo input"}]}
+    before = client.get("/api/v1/conversations").json()
+    denied = client.post("/api/v1/conversations", json=payload, headers={"Origin": "https://evil.example"})
+    assert denied.status_code == 403
+    assert client.get("/api/v1/conversations").json() == before
+    assert client.post("/api/v1/conversations", json=payload, headers={"Origin": "https://demo.example"}).status_code == 201
+    assert client.post("/api/v1/imports/dev", json={}).json()["error"]["code"] == "demo_api_url_required"
+    denied = client.post("/api/v1/imports/dev", json={"api_url": "https://attacker.invalid/elsewhere"})
+    assert denied.status_code == 403

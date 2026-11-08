@@ -14,6 +14,7 @@ from typing import Literal
 
 from .contracts import ChecklistVersion, Conversation, CriterionResult, Evaluation
 from .default_checklist import official_checklist
+from .export_privacy import redact_source_names
 from .scoring import calculate_score, validate_results
 
 DatasetKind = Literal["dev", "prod", "test"]
@@ -237,6 +238,7 @@ def _selected(evaluations, source_by_internal, report):
 def _row(conversation, evaluation, report):
     cid = conversation.external_id
     path = "results"
+    source_texts = [message.text for message in conversation.messages]
     if evaluation.status in {"queued", "running"}:
         _issue(report, "unfinished_evaluation", path, "Оценка ещё ожидает выполнения или выполняется; дождитесь завершения.", cid)
         return None
@@ -249,7 +251,7 @@ def _row(conversation, evaluation, report):
             return None
         _issue(report, "evaluation_error", path, "Диалог включён с сохранённой ошибкой обработки; это разрешено форматом и не является нулевой оценкой.", cid, warning=True)
         return {"conversation_id": cid, "status": "error", "criteria": [], "score": None,
-                "error": evaluation.error.message}
+                "error": redact_source_names(evaluation.error.message, source_texts)}
     if evaluation.status != "completed":
         _issue(report, "invalid_evaluation_status", path, "Неизвестный статус сохранённой оценки.", cid)
         return None
@@ -281,7 +283,8 @@ def _row(conversation, evaluation, report):
         result = indexed[internal]
         value = result.value
         value = None if value == "N/A" else value if type(value) is bool else int(value)
-        criteria.append({"criterion_id": official, "value": value, "rationale": result.reasoning,
+        criteria.append({"criterion_id": official, "value": value,
+                         "rationale": redact_source_names(result.reasoning, source_texts),
                          "evidence_turns": [turns[mid] for mid in result.evidence_message_ids]})
     return {"conversation_id": cid, "status": "ok", "criteria": criteria,
             "score": {"final_score": score_source.total, "critical_flag": score_source.gross_error}}
@@ -312,7 +315,8 @@ def build_official_export(
 
     ``conversations`` is the full authoritative source set. ``evaluations`` must
     contain exactly one explicitly selected evaluation for each source dialogue.
-    Successful rows preserve ai_draft.criteria and original_score before human review.
+    Successful rows use ai_draft.criteria and original_score before human review;
+    rationale/error text applies the documented source-name privacy projection.
     Failed evaluations are valid official error records, with warnings in validation.
     """
     report = _report(dataset_kind)

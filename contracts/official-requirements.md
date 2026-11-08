@@ -36,6 +36,19 @@ Each record has `conversation_id`, `channel`, `language`, `transcript` array of
 `{timestamp,speaker,text}`, and `audio_url`. Preserve all values locally. Expected DEV size:65.
 The API does not return reference quality scores, so agreement with organizers cannot yet be measured.
 
+Official public export uses the selected original automatic ai_draft/original_score, never human
+appeal replacements. A deliberate privacy exception applies only to rationale/error text:
+`redact_source_names(text, source_texts)` replaces explicit source-confirmed RU/KZ/EN introduction
+names from the same conversation (all roles) with `[имя скрыто]`. Matching is case-insensitive over
+whole token sequences, longest first; punctuation outside each replaced span is preserved exactly.
+The complete discovery grammar, generic-word exclusions and deterministic overlap rules are in
+`docs/official-export.md` under "Публичная проекция имён". All other text, criterion values,
+evidence positions, scores and model metadata remain unchanged. Provenance validation compares
+the exported text against this projection of the original text, not against human review text.
+This is a narrow privacy projection, not general anonymization; independent publication review
+is still required. Saved source messages, raw_response, AI drafts, original scores, human decisions
+and private archive remain unchanged. Results 1.0 and shared DTO schemas do not change.
+
 At +23h organizers provide a control set; at +24h code is frozen. Data processing and checklist
 configuration remain allowed after freeze. Before submission a public repository and a link to
 organizers are required. The user authorized public release and official DEV submission on 8 November.

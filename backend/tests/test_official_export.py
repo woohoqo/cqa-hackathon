@@ -138,6 +138,10 @@ def test_persisted_appeal_decision_keeps_official_original_and_internal_review(
     tmp_path, case, outcome, criterion_id, value,
 ):
     conversation, evaluation = case
+    conversation.messages[3].text = "My name is Elara. Synthetic introduction."
+    evaluation.ai_draft.criteria[0].reasoning = "Synthetic operator Elara introduced herself."
+    evaluation.final_criteria[0].reasoning = evaluation.ai_draft.criteria[0].reasoning
+    evaluation.raw_response = evaluation.ai_draft.raw_response = '  { "synthetic_name": "Elara" }\n'
     path = str(tmp_path / "synthetic-appeal.sqlite3")
     db = Database(path)
     db.initialize()
@@ -148,6 +152,9 @@ def test_persisted_appeal_decision_keeps_official_original_and_internal_review(
                     (evaluation.id, evaluation.batch_id, conversation.id, evaluation.status.value, evaluation.model_dump_json()))
     service = CQAService(db, Settings(path, [], 1, 1, ""))
     expected = build(case)
+    assert expected["results"][0]["criteria"][0]["rationale"] == (
+        "Synthetic operator [имя скрыто] introduced herself."
+    )
     appeal = service.appeal(evaluation.id, AppealCreate(
         criterion_id=criterion_id, reason="Synthetic submission provenance check",
         author="synthetic-author", proposed_value=value,
@@ -177,6 +184,59 @@ def test_persisted_appeal_decision_keeps_official_original_and_internal_review(
         assert persisted.final_score == evaluation.final_score
     assert db.read("appeals", appeal.id).status == outcome
     assert service.decisions(evaluation.id)[0].outcome == outcome
+
+
+@pytest.mark.parametrize("source_position", [0, 1, 2, 3])
+def test_privacy_projection_uses_all_roles_without_changing_ai_or_other_fields(case, source_position):
+    conversation, evaluation = case
+    conversation.messages[source_position].text = "Меня зовут Лира. Synthetic introduction."
+    evaluation.ai_draft.criteria[0].reasoning = "  Synthetic: «ЛИРА», with evidence.\n"
+    evaluation.ai_draft.raw_response = evaluation.raw_response = ' { "synthetic": "Лира" }\r\n'
+    before = deepcopy(case)
+    payload = build(case)
+    row = payload["results"][0]
+    assert row["criteria"][0] == {
+        "criterion_id": "contact", "value": True,
+        "rationale": "  Synthetic: «[имя скрыто]», with evidence.\n", "evidence_turns": [1, 3, 4, 6],
+    }
+    assert row["score"] == {"final_score": 85.38, "critical_flag": False}
+    assert case == before
+    assert validate(payload, case, evaluations=[evaluation])["valid"]
+    unprojected = deepcopy(payload)
+    unprojected["results"][0]["criteria"][0]["rationale"] = evaluation.ai_draft.criteria[0].reasoning
+    assert "stored_result_mismatch" in errors(validate(unprojected, case, evaluations=[evaluation]))
+    tampered = deepcopy(payload)
+    tampered["results"][0]["criteria"][0]["rationale"] = "Different synthetic rationale."
+    assert "stored_result_mismatch" in errors(validate(tampered, case, evaluations=[evaluation]))
+
+
+def test_privacy_projection_is_scoped_to_the_same_conversation():
+    first, second = synthetic_case(1), synthetic_case(2)
+    first[0].messages[1].text = "My name is Elara."
+    for _, evaluation in (first, second):
+        evaluation.ai_draft.criteria[0].reasoning = "Synthetic Elara mention."
+    before = deepcopy((first, second))
+    payload = build_official_export([first[0], second[0]], [first[1], second[1]], "cuda cuda", "test")
+    assert [row["criteria"][0]["rationale"] for row in payload["results"]] == [
+        "Synthetic [имя скрыто] mention.", "Synthetic Elara mention.",
+    ]
+    assert (first, second) == before
+
+
+def test_failed_export_projects_error_only_and_preserves_private_record(case):
+    conversation, evaluation = case
+    conversation.messages[1].text = "Менің атым Қиял. Synthetic introduction."
+    make_failed(evaluation)
+    evaluation.error.message = "Synthetic failure for ҚИЯЛ; retry allowed."
+    evaluation.raw_response = '  { "synthetic": "Қиял" }\n'
+    before = deepcopy(case)
+    payload = build(case)
+    assert payload["results"][0] == {
+        "conversation_id": conversation.external_id, "status": "error", "criteria": [], "score": None,
+        "error": "Synthetic failure for [имя скрыто]; retry allowed.",
+    }
+    assert case == before
+    assert validate(payload, case, evaluations=[evaluation])["valid"]
 
 
 def test_critical_flag_does_not_zero_total(case):
